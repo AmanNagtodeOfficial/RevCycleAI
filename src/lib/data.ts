@@ -26,6 +26,15 @@ export type Patient = {
   status: 'Active' | 'Inactive';
 };
 
+export type Statement = {
+  id: string;
+  patientId: string;
+  patientName: string;
+  dateIssued: string;
+  amountDue: number;
+  status: "Paid" | "Sent" | "Overdue" | "Draft";
+};
+
 export const claims: Claim[] = [
   {
     id: "C20240715001",
@@ -256,4 +265,14 @@ export const patients: Patient[] = [
     lastVisit: "2024-07-01",
     status: "Inactive",
   },
+];
+
+export const statements: Statement[] = [
+    { id: 'STMT-001', patientId: 'P001', patientName: 'Eleanor Vance', dateIssued: '2024-07-20', amountDue: 50.00, status: 'Paid' },
+    { id: 'STMT-002', patientId: 'P002', patientName: 'Marcus Thorne', dateIssued: '2024-07-21', amountDue: 150.00, status: 'Overdue' },
+    { id: 'STMT-003', patientId: 'P003', patientName: 'Seraphina Moon', dateIssued: '2024-07-22', amountDue: 75.50, status: 'Sent' },
+    { id: 'STMT-004', patientId: 'P004', patientName: 'Julian Croft', dateIssued: '2024-07-23', amountDue: 25.00, status: 'Paid' },
+    { id: 'STMT-005', patientId: 'P006', patientName: "Liam O'Connell", dateIssued: '2024-07-24', amountDue: 200.00, status: 'Sent' },
+    { id: 'STMT-006', patientId: 'P007', patientName: 'Sophia Rodriguez', dateIssued: '2024-07-25', amountDue: 300.00, status: 'Draft' },
+    { id: 'STMT-007', patientId: 'P008', patientName: 'Kenji Tanaka', dateIssued: '2024-07-26', amountDue: 120.00, status: 'Overdue' },
 ];

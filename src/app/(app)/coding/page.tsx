@@ -5,9 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { suggestMedicalCodes, SuggestMedicalCodesOutput } from '@/ai/flows/suggest-medical-codes';
-import { Loader, Wand2 } from 'lucide-react';
+import { Loader, Wand2, Copy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function CodingPage() {
   const [notes, setNotes] = useState('');
@@ -39,14 +48,22 @@ export default function CodingPage() {
       setIsLoading(false);
     }
   };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+        title: "Copied to clipboard",
+        description: `Code "${text}" has been copied.`,
+    });
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="AI Coder"
+        title="AI Coding Copilot"
         description="Generate accurate medical codes from clinical notes instantly."
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <Card>
           <CardHeader>
             <CardTitle>Clinical Documentation</CardTitle>
@@ -61,30 +78,22 @@ export default function CodingPage() {
               placeholder="e.g., Patient presents with a persistent cough and fever..."
               className="min-h-[300px] text-base"
             />
+            <Button onClick={handleSuggestCodes} disabled={isLoading} className="w-full mt-4">
+              {isLoading ? (
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                  <Wand2 className="mr-2 h-4 w-4" />
+              )}
+              Suggest Codes
+            </Button>
           </CardContent>
         </Card>
 
         <div className="space-y-6">
-           <Card>
-                <CardHeader>
-                    <CardTitle>Generate Suggestions</CardTitle>
-                    <CardDescription>Click the button to let our AI analyze the notes and suggest relevant medical codes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handleSuggestCodes} disabled={isLoading} className="w-full">
-                    {isLoading ? (
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Wand2 className="mr-2 h-4 w-4" />
-                    )}
-                    Suggest Codes
-                    </Button>
-                </CardContent>
-            </Card>
           {isLoading && (
              <Card>
                 <CardContent className="pt-6">
-                     <div className="flex flex-col items-center justify-center space-y-4">
+                     <div className="flex flex-col items-center justify-center space-y-4 h-[360px]">
                         <Loader className="h-10 w-10 animate-spin text-primary" />
                         <p className="text-muted-foreground">Analyzing notes and generating codes...</p>
                     </div>
@@ -101,29 +110,75 @@ export default function CodingPage() {
               </CardHeader>
               <CardContent>
                 {suggestions.suggestedCodes.length > 0 ? (
-                  <ul className="space-y-4">
+                  <TooltipProvider>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Confidence</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                     {suggestions.suggestedCodes.map((code, index) => (
-                      <li key={index} className="p-4 border rounded-lg bg-background">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-bold text-lg">{code.code}</p>
-                            <p className="text-sm text-muted-foreground">{code.explanation}</p>
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{code.code}</span>
+                            <span className="text-xs text-muted-foreground">{code.type}</span>
                           </div>
-                          <Badge
+                        </TableCell>
+                        <TableCell className="max-w-[250px] truncate">
+                           <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-default">{code.explanation}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" align="start" className="max-w-xs">
+                                <p>{code.explanation}</p>
+                              </TooltipContent>
+                           </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                           <Badge
                             variant={code.confidence > 0.9 ? 'default' : 'secondary'}
                             className={code.confidence > 0.9 ? 'bg-success text-success-foreground' : ''}
                           >
-                            {Math.round(code.confidence * 100)}% Confidence
+                            {Math.round(code.confidence * 100)}%
                           </Badge>
-                        </div>
-                      </li>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(code.code)}>
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy Code</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </ul>
+                    </TableBody>
+                  </Table>
+                  </TooltipProvider>
                 ) : (
-                  <p className="text-muted-foreground">No codes could be suggested for the provided notes.</p>
+                  <p className="text-muted-foreground text-center py-10">No codes could be suggested for the provided notes.</p>
                 )}
               </CardContent>
             </Card>
+          )}
+           {!isLoading && !suggestions && (
+             <Card>
+                <CardContent className="pt-6">
+                     <div className="flex flex-col items-center justify-center space-y-4 h-[360px]">
+                        <Wand2 className="h-10 w-10 text-muted-foreground" />
+                        <p className="text-muted-foreground">Your code suggestions will appear here.</p>
+                    </div>
+                </CardContent>
+             </Card>
           )}
         </div>
       </div>
