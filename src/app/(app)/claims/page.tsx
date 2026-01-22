@@ -74,7 +74,7 @@ export default async function ClaimsPage() {
         </Card>
       </div>
 
-      <DataTable columns={columns} data={data} />
+      <DataTable columns={columns} data={data} filterColumn="patient" filterPlaceholder="Filter claims by patient..." />
     </div>
   )
 }

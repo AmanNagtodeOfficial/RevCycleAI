@@ -15,6 +15,17 @@ export type Claim = {
   history: { status: string; date: string; user: string }[];
 };
 
+export type Patient = {
+  id: string;
+  name: string;
+  dob: string;
+  gender: 'Male' | 'Female' | 'Other';
+  insuranceProvider: string;
+  insuranceId: string;
+  lastVisit: string;
+  status: 'Active' | 'Inactive';
+};
+
 export const claims: Claim[] = [
   {
     id: "C20240715001",
@@ -161,5 +172,88 @@ export const claims: Claim[] = [
         { status: "Paid", date: "2024-07-10", user: "System" },
         { status: "Submitted", date: "2024-07-01", user: "Admin" },
     ]
+  },
+];
+
+export const patients: Patient[] = [
+  {
+    id: "P001",
+    name: "Eleanor Vance",
+    dob: "1985-05-22",
+    gender: "Female",
+    insuranceProvider: "Aetna",
+    insuranceId: "AET123456789",
+    lastVisit: "2024-07-15",
+    status: "Active",
+  },
+  {
+    id: "P002",
+    name: "Marcus Thorne",
+    dob: "1978-11-03",
+    gender: "Male",
+    insuranceProvider: "Cigna",
+    insuranceId: "CIG987654321",
+    lastVisit: "2024-07-14",
+    status: "Active",
+  },
+  {
+    id: "P003",
+    name: "Seraphina Moon",
+    dob: "1992-02-14",
+    gender: "Female",
+    insuranceProvider: "United Healthcare",
+    insuranceId: "UHC246813579",
+    lastVisit: "2024-07-12",
+    status: "Active",
+  },
+  {
+    id: "P004",
+    name: "Julian Croft",
+    dob: "1965-09-30",
+    gender: "Male",
+    insuranceProvider: "BlueCross BlueShield",
+    insuranceId: "BCBS135792468",
+    lastVisit: "2024-07-10",
+    status: "Active",
+  },
+  {
+    id: "P005",
+    name: "Isabella Chen",
+    dob: "2001-03-18",
+    gender: "Female",
+    insuranceProvider: "Humana",
+    insuranceId: "HUM555444333",
+    lastVisit: "2024-07-09",
+    status: "Inactive",
+  },
+  {
+    id: "P006",
+    name: "Liam O'Connell",
+    dob: "1988-07-07",
+    gender: "Male",
+    insuranceProvider: "Aetna",
+    insuranceId: "AET998877665",
+    lastVisit: "2024-07-08",
+    status: "Active",
+  },
+  {
+    id: "P007",
+    name: "Sophia Rodriguez",
+    dob: "1955-12-25",
+    gender: "Female",
+    insuranceProvider: "Cigna",
+    insuranceId: "CIG112233445",
+    lastVisit: "2024-07-05",
+    status: "Active",
+  },
+  {
+    id: "P008",
+    name: "Kenji Tanaka",
+    dob: "1995-08-15",
+    gender: "Male",
+    insuranceProvider: "United Healthcare",
+    insuranceId: "UHC777888999",
+    lastVisit: "2024-07-01",
+    status: "Inactive",
   },
 ];

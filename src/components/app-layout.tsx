@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -25,6 +24,8 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  CreditCard,
+  Receipt,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,8 @@ const menuItems = [
   { name: 'Claims', href: '/claims', icon: FileText },
   { name: 'Patients', href: '/patients', icon: Users },
   { name: 'AI Coder', href: '/coding', icon: Code },
+  { name: 'Payments', href: '/payments', icon: CreditCard },
+  { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Analytics', href: '/analytics', icon: LineChart },
 ];
 
