@@ -20,7 +20,7 @@ import {
   Home,
   FileText,
   Users,
-  Briefcase,
+  Code,
   LineChart,
   Settings,
   LogOut,
@@ -42,7 +42,7 @@ const menuItems = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Claims', href: '/claims', icon: FileText },
   { name: 'Patients', href: '/patients', icon: Users },
-  { name: 'Coding Copilot', href: '/coding', icon: Briefcase },
+  { name: 'AI Coder', href: '/coding', icon: Code },
   { name: 'Analytics', href: '/analytics', icon: LineChart },
 ];
 

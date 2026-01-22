@@ -25,6 +25,8 @@ const getStatusBadge = (status: Claim["status"]) => {
       return <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">{status}</Badge>
     case "Submitted":
       return <Badge variant="secondary">{status}</Badge>
+    case "Scrubbing":
+      return <Badge variant="outline" className="border-primary/50 text-primary">{status}</Badge>
     default:
       return <Badge>{status}</Badge>
   }
@@ -34,11 +36,15 @@ export const columns: ColumnDef<Claim>[] = [
   {
     accessorKey: "id",
     header: "Claim ID",
-    cell: ({ row }) => <div className="font-medium">{row.getValue("id")}</div>,
+    cell: ({ row }) => <Link href={`/claims/${row.getValue("id")}`} className="font-medium text-primary hover:underline">{row.getValue("id")}</Link>,
   },
   {
     accessorKey: "patient",
     header: "Patient",
+  },
+  {
+    accessorKey: "provider",
+    header: "Provider",
   },
   {
     accessorKey: "payer",
