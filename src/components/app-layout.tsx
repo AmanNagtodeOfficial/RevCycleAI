@@ -26,6 +26,7 @@ import {
   Sparkles,
   CreditCard,
   Receipt,
+  Briefcase,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ const menuItems = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Claims', href: '/claims', icon: FileText },
   { name: 'Patients', href: '/patients', icon: Users },
+  { name: 'Insurance', href: '/insurance', icon: Briefcase },
   { name: 'AI Coder', href: '/coding', icon: Code },
   { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Billing', href: '/billing', icon: Receipt },
