@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 export default function NewClaimPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
