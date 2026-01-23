@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Cake, VenetianMask, Phone, Mail, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { EditPatientDialog } from "./edit-patient-dialog";
 
 export default function PatientDetailPage({ params }: { params: { id: string } }) {
   const patient = patients.find(p => p.id === params.id);
@@ -55,7 +56,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         description={`Demographics and financial history for patient ID ${patient.id}.`}
         action={
             <div className="flex gap-2">
-                <Button variant="outline">Edit Patient</Button>
+                <EditPatientDialog patient={patient} />
                 <Button asChild><Link href="/claims/new">New Claim</Link></Button>
             </div>
         }
