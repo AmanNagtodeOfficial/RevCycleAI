@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -75,7 +76,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="bg-card p-4 rounded-lg border">
-      <div className="flex items-center py-4">
+      <div className="flex items-center py-4 gap-4">
         {filterColumn && (
           <Input
             placeholder={filterPlaceholder || `Filter by ${filterColumn}...`}
@@ -85,6 +86,27 @@ export function DataTable<TData, TValue>({
             }
             className="max-w-sm"
           />
+        )}
+        {table.getColumn("status") && (
+          <Select
+              value={(table.getColumn("status")?.getFilterValue() as string) ?? "all"}
+              onValueChange={(value) => {
+                  const filterValue = value === "all" ? "" : value;
+                  table.getColumn("status")?.setFilterValue(filterValue);
+              }}
+          >
+              <SelectTrigger className="w-auto min-w-[180px]">
+                  <SelectValue placeholder="Filter by status..." />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  <SelectItem value="Denied">Denied</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Submitted">Submitted</SelectItem>
+                  <SelectItem value="Scrubbing">Scrubbing</SelectItem>
+              </SelectContent>
+          </Select>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

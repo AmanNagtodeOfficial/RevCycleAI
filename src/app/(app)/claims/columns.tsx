@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { Claim } from "@/lib/data"
+import { Claim, patients } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -48,7 +48,15 @@ export const columns: ColumnDef<Claim>[] = [
   },
   {
     accessorKey: "payer",
-    header: "Payer",
+    header: "Primary Payer",
+  },
+  {
+    id: 'secondaryPayer',
+    header: 'Secondary Payer',
+    cell: ({ row }) => {
+      const patient = patients.find(p => p.id === row.original.patientId);
+      return patient?.secondaryInsuranceProvider || 'N/A';
+    },
   },
   {
     accessorKey: "amount",
@@ -67,6 +75,10 @@ export const columns: ColumnDef<Claim>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => getStatusBadge(row.getValue("status")),
+  },
+  {
+    accessorKey: "dateOfService",
+    header: "Date of Service",
   },
   {
     accessorKey: "date",

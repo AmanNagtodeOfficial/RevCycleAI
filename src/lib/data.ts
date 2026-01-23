@@ -7,6 +7,7 @@ export type Claim = {
   amount: number;
   status: "Paid" | "Denied" | "Pending" | "Submitted" | "Scrubbing";
   date: string;
+  dateOfService: string;
   denialReason?: string;
   riskScore?: number;
   procedure: string;
@@ -66,6 +67,7 @@ export const claims: Claim[] = [
     amount: 1250.75,
     status: "Paid",
     date: "2024-07-15",
+    dateOfService: "2024-07-14",
     riskScore: 10,
     procedure: "99214 - Office Visit",
     diagnosis: "R05 - Cough",
@@ -85,6 +87,7 @@ export const claims: Claim[] = [
     status: "Denied",
     denialReason: "Medical Necessity",
     date: "2024-07-14",
+    dateOfService: "2024-07-13",
     riskScore: 92,
     procedure: "88305 - Tissue Exam",
     diagnosis: "D48.5 - Neoplasm",
@@ -103,6 +106,7 @@ export const claims: Claim[] = [
     amount: 2300.0,
     status: "Pending",
     date: "2024-07-12",
+    dateOfService: "2024-07-11",
     riskScore: 78,
     procedure: "71046 - Chest X-Ray",
     diagnosis: "J44.9 - COPD",
@@ -121,6 +125,7 @@ export const claims: Claim[] = [
     amount: 450.25,
     status: "Scrubbing",
     date: "2024-07-10",
+    dateOfService: "2024-07-09",
     riskScore: 35,
     procedure: "99213 - Office Visit",
     diagnosis: "M54.5 - Low back pain",
@@ -139,6 +144,7 @@ export const claims: Claim[] = [
     amount: 1800.5,
     status: "Paid",
     date: "2024-07-09",
+    dateOfService: "2024-07-08",
     riskScore: 5,
     procedure: "93000 - EKG",
     diagnosis: "I10 - Hypertension",
@@ -157,6 +163,7 @@ export const claims: Claim[] = [
     amount: 760.0,
     status: "Pending",
     date: "2024-07-08",
+    dateOfService: "2024-07-07",
     riskScore: 65,
     procedure: "99396 - Preventive Visit",
     diagnosis: "Z00.00 - Health Exam",
@@ -176,6 +183,7 @@ export const claims: Claim[] = [
     status: "Denied",
     denialReason: "Payer Policy Mismatch",
     date: "2024-07-05",
+    dateOfService: "2024-07-04",
     riskScore: 85,
     procedure: "27447 - Knee Replacement",
     diagnosis: "M17.11 - Osteoarthritis",
@@ -194,6 +202,7 @@ export const claims: Claim[] = [
     amount: 990.9,
     status: "Paid",
     date: "2024-07-01",
+    dateOfService: "2024-06-30",
     riskScore: 12,
     procedure: "99204 - New Patient Visit",
     diagnosis: "E11.9 - Type 2 Diabetes",
