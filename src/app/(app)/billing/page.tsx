@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/page-header";
 import { statements } from "@/lib/data";
 import { columns } from "./columns";
@@ -10,6 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DollarSign, FileWarning, Mail, FileCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlaceholderPage } from "@/components/placeholder-page";
 
 export default function BillingPage() {
 
@@ -25,56 +28,71 @@ export default function BillingPage() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Patient Billing" 
-                description="Manage patient statements, payments, and collections."
-                action={
-                    <div className="flex gap-2">
-                        <Button variant="outline">Send Reminders</Button>
-                        <Button>Generate Statements</Button>
-                    </div>
-                }
+                title="Billing" 
+                description="Manage both patient and insurance billing processes."
             />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(stats.outstanding)}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Overdue Statements</CardTitle>
-                        <FileWarning className="h-4 w-4 text-destructive" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.overdue}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Statements in Draft</CardTitle>
-                        <Mail className="h-4 w-4 text-accent" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.draft}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Paid (This Month)</CardTitle>
-                        <FileCheck className="h-4 w-4 text-success" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.paidThisMonth}</div>
-                    </CardContent>
-                </Card>
-            </div>
+            
+            <Tabs defaultValue="patient" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+                    <TabsTrigger value="patient">Patient Billing</TabsTrigger>
+                    <TabsTrigger value="insurance">Insurance Billing</TabsTrigger>
+                </TabsList>
+                <TabsContent value="patient" className="mt-4 space-y-6">
+                     <div className="flex items-center justify-between">
+                         <h2 className="text-xl font-semibold tracking-tight">Patient Statements</h2>
+                         <div className="flex gap-2">
+                            <Button variant="outline">Send Reminders</Button>
+                            <Button>Generate Statements</Button>
+                        </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(stats.outstanding)}</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Overdue Statements</CardTitle>
+                                <FileWarning className="h-4 w-4 text-destructive" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.overdue}</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Statements in Draft</CardTitle>
+                                <Mail className="h-4 w-4 text-accent" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.draft}</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Paid (This Month)</CardTitle>
+                                <FileCheck className="h-4 w-4 text-success" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.paidThisMonth}</div>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-             <DataTable columns={columns} data={data} filterColumn="patientName" filterPlaceholder="Filter by patient name..." />
-
+                    <DataTable columns={columns} data={data} filterColumn="patientName" filterPlaceholder="Filter by patient name..." />
+                </TabsContent>
+                <TabsContent value="insurance" className="mt-4">
+                     <PlaceholderPage 
+                        title="Coming Soon: Insurance Billing" 
+                        description="This section will provide tools to manage insurance remittances, generate reports, and track payer performance." 
+                    />
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
