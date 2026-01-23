@@ -30,7 +30,7 @@ export const columns: ColumnDef<Patient>[] = [
     header: "Date of Birth",
   },
   {
-    accessorKey: "insuranceProvider",
+    accessorKey: "primaryInsuranceProvider",
     header: "Insurance",
   },
   {
@@ -63,9 +63,10 @@ export const columns: ColumnDef<Patient>[] = [
             <DropdownMenuItem asChild>
               <Link href={`/patients/${patient.id}`}>View Details</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Edit Patient</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Create New Claim</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/claims/new">Create New Claim</Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )

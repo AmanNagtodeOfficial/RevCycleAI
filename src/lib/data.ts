@@ -20,10 +20,31 @@ export type Patient = {
   name: string;
   dob: string;
   gender: 'Male' | 'Female' | 'Other';
-  insuranceProvider: string;
-  insuranceId: string;
-  lastVisit: string;
   status: 'Active' | 'Inactive';
+  lastVisit: string;
+  
+  // Demographics
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+  email: string;
+
+  // Subscriber Info
+  subscriberName: string;
+  subscriberDob: string;
+  subscriberRelationship: 'Self' | 'Spouse' | 'Child' | 'Other';
+
+  // Primary Insurance
+  primaryInsuranceProvider: string;
+  primaryInsuranceId: string;
+  primaryInsuranceGroup: string;
+
+  // Secondary Insurance (optional)
+  secondaryInsuranceProvider?: string;
+  secondaryInsuranceId?: string;
+  secondaryInsuranceGroup?: string;
 };
 
 export type Statement = {
@@ -190,82 +211,166 @@ export const patients: Patient[] = [
     name: "Eleanor Vance",
     dob: "1985-05-22",
     gender: "Female",
-    insuranceProvider: "Aetna",
-    insuranceId: "AET123456789",
-    lastVisit: "2024-07-15",
     status: "Active",
+    lastVisit: "2024-07-15",
+    address: "123 Wellness Way",
+    city: "Healthville",
+    state: "CA",
+    zip: "90210",
+    phone: "555-123-4567",
+    email: "eleanor.vance@example.com",
+    subscriberName: "Eleanor Vance",
+    subscriberDob: "1985-05-22",
+    subscriberRelationship: "Self",
+    primaryInsuranceProvider: "Aetna",
+    primaryInsuranceId: "AET123456789",
+    primaryInsuranceGroup: "GRP-XYZ1",
+    secondaryInsuranceProvider: "Cigna",
+    secondaryInsuranceId: "CIG-SEC-987",
+    secondaryInsuranceGroup: "GRP-SEC-ABC",
   },
   {
     id: "P002",
     name: "Marcus Thorne",
     dob: "1978-11-03",
     gender: "Male",
-    insuranceProvider: "Cigna",
-    insuranceId: "CIG987654321",
-    lastVisit: "2024-07-14",
     status: "Active",
+    lastVisit: "2024-07-14",
+    address: "456 Recovery Road",
+    city: "Metropolis",
+    state: "NY",
+    zip: "10001",
+    phone: "555-987-6543",
+    email: "marcus.thorne@example.com",
+    subscriberName: "Marcus Thorne",
+    subscriberDob: "1978-11-03",
+    subscriberRelationship: "Self",
+    primaryInsuranceProvider: "Cigna",
+    primaryInsuranceId: "CIG987654321",
+    primaryInsuranceGroup: "GRP-QWE3",
   },
   {
     id: "P003",
     name: "Seraphina Moon",
     dob: "1992-02-14",
     gender: "Female",
-    insuranceProvider: "United Healthcare",
-    insuranceId: "UHC246813579",
-    lastVisit: "2024-07-12",
     status: "Active",
+    lastVisit: "2024-07-12",
+    address: "789 Serenity Lane",
+    city: "Starfall",
+    state: "TX",
+    zip: "75001",
+    phone: "555-246-8135",
+    email: "seraphina.moon@example.com",
+    subscriberName: "Julian Moon",
+    subscriberDob: "1990-01-01",
+    subscriberRelationship: "Spouse",
+    primaryInsuranceProvider: "United Healthcare",
+    primaryInsuranceId: "UHC246813579",
+    primaryInsuranceGroup: "GRP-RTY4",
   },
   {
     id: "P004",
     name: "Julian Croft",
     dob: "1965-09-30",
     gender: "Male",
-    insuranceProvider: "BlueCross BlueShield",
-    insuranceId: "BCBS135792468",
-    lastVisit: "2024-07-10",
     status: "Active",
+    lastVisit: "2024-07-10",
+    address: "101 Adventure Ave",
+    city: "Explorers Hub",
+    state: "FL",
+    zip: "33101",
+    phone: "555-135-7924",
+    email: "julian.croft@example.com",
+    subscriberName: "Julian Croft",
+    subscriberDob: "1965-09-30",
+    subscriberRelationship: "Self",
+    primaryInsuranceProvider: "BlueCross BlueShield",
+    primaryInsuranceId: "BCBS135792468",
+    primaryInsuranceGroup: "GRP-UIO5",
   },
   {
     id: "P005",
     name: "Isabella Chen",
     dob: "2001-03-18",
     gender: "Female",
-    insuranceProvider: "Humana",
-    insuranceId: "HUM555444333",
-    lastVisit: "2024-07-09",
     status: "Inactive",
+    lastVisit: "2024-07-09",
+    address: "222 Innovation Drive",
+    city: "Tech Park",
+    state: "WA",
+    zip: "98101",
+    phone: "555-555-4443",
+    email: "isabella.chen@example.com",
+    subscriberName: "David Chen",
+    subscriberDob: "1975-10-10",
+    subscriberRelationship: "Child",
+    primaryInsuranceProvider: "Humana",
+    primaryInsuranceId: "HUM555444333",
+    primaryInsuranceGroup: "GRP-PAS6",
   },
   {
     id: "P006",
     name: "Liam O'Connell",
     dob: "1988-07-07",
     gender: "Male",
-    insuranceProvider: "Aetna",
-    insuranceId: "AET998877665",
-    lastVisit: "2024-07-08",
     status: "Active",
+    lastVisit: "2024-07-08",
+    address: "333 Clover Court",
+    city: "Dublin",
+    state: "OH",
+    zip: "43016",
+    phone: "555-998-8776",
+    email: "liam.oconnell@example.com",
+    subscriberName: "Liam O'Connell",
+    subscriberDob: "1988-07-07",
+    subscriberRelationship: "Self",
+    primaryInsuranceProvider: "Aetna",
+    primaryInsuranceId: "AET998877665",
+    primaryInsuranceGroup: "GRP-DFG7",
   },
   {
     id: "P007",
     name: "Sophia Rodriguez",
     dob: "1955-12-25",
     gender: "Female",
-    insuranceProvider: "Cigna",
-    insuranceId: "CIG112233445",
-    lastVisit: "2024-07-05",
     status: "Active",
+    lastVisit: "2024-07-05",
+    address: "777 Sunshine Blvd",
+    city: "Golden City",
+    state: "AZ",
+    zip: "85001",
+    phone: "555-112-2334",
+    email: "sophia.rodriguez@example.com",
+    subscriberName: "Sophia Rodriguez",
+    subscriberDob: "1955-12-25",
+    subscriberRelationship: "Self",
+    primaryInsuranceProvider: "Cigna",
+    primaryInsuranceId: "CIG112233445",
+    primaryInsuranceGroup: "GRP-HJK8",
   },
   {
     id: "P008",
     name: "Kenji Tanaka",
     dob: "1995-08-15",
     gender: "Male",
-    insuranceProvider: "United Healthcare",
-    insuranceId: "UHC777888999",
-    lastVisit: "2024-07-01",
     status: "Inactive",
+    lastVisit: "2024-07-01",
+    address: "888 Blossom Lane",
+    city: "Sakura Valley",
+    state: "OR",
+    zip: "97201",
+    phone: "555-777-8889",
+    email: "kenji.tanaka@example.com",
+    subscriberName: "Kenji Tanaka",
+    subscriberDob: "1995-08-15",
+    subscriberRelationship: "Self",
+    primaryInsuranceProvider: "United Healthcare",
+    primaryInsuranceId: "UHC777888999",
+    primaryInsuranceGroup: "GRP-LKM9",
   },
 ];
+
 
 export const statements: Statement[] = [
     { id: 'STMT-001', patientId: 'P001', patientName: 'Eleanor Vance', dateIssued: '2024-07-20', amountDue: 50.00, status: 'Paid' },

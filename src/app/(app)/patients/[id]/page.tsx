@@ -10,6 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import {
   Tabs,
@@ -22,10 +23,11 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Cake, VenetianMask, Phone, Mail, Shield } from "lucide-react";
+import { User, Cake, VenetianMask, Phone, Mail, Shield, Home, Users, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
+import { Separator } from "@/components/ui/separator";
 
 export default function PatientDetailPage({ params }: { params: { id: string } }) {
   const patient = patients.find(p => p.id === params.id);
@@ -48,7 +50,6 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
     return name.substring(0, 2);
   }
 
-
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -62,7 +63,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         }
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-1 space-y-6">
             <Card>
                 <CardHeader className="flex flex-row items-center gap-4">
@@ -80,28 +81,73 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
-                    <div className="flex items-center gap-3">
-                        <Cake className="w-4 h-4 text-muted-foreground" />
-                        <span>Born on {patient.dob}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <VenetianMask className="w-4 h-4 text-muted-foreground" />
-                        <span>{patient.gender}</span>
-                    </div>
-                     <div className="flex items-center gap-3">
-                        <Shield className="w-4 h-4 text-muted-foreground" />
-                        <span>{patient.insuranceProvider} ({patient.insuranceId})</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <span>(555) 123-4567</span>
-                    </div>
-                     <div className="flex items-center gap-3">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span>{patient.name.toLowerCase().replace(' ', '.')}@example.com</span>
-                    </div>
+                   <div className="flex flex-col space-y-2">
+                        <h4 className="font-medium">Patient Info</h4>
+                        <div className="flex items-center gap-3">
+                            <Cake className="w-4 h-4 text-muted-foreground" />
+                            <span>Born on {patient.dob}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <VenetianMask className="w-4 h-4 text-muted-foreground" />
+                            <span>{patient.gender}</span>
+                        </div>
+                   </div>
+                   <Separator />
+                   <div className="flex flex-col space-y-2">
+                        <h4 className="font-medium">Contact Information</h4>
+                         <div className="flex items-start gap-3">
+                            <Home className="w-4 h-4 text-muted-foreground mt-1" />
+                            <span>{patient.address},<br/>{patient.city}, {patient.state} {patient.zip}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <span>{patient.phone}</span>
+                        </div>
+                         <div className="flex items-center gap-3">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <span>{patient.email}</span>
+                        </div>
+                   </div>
                 </CardContent>
             </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Insurance & Subscriber</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                    <div className="flex flex-col space-y-2">
+                        <h4 className="font-medium flex items-center gap-2"><Users className="w-4 h-4"/>Subscriber: {patient.subscriberName} ({patient.subscriberRelationship})</h4>
+                         <div className="flex items-center gap-3 pl-6">
+                            <Cake className="w-4 h-4 text-muted-foreground" />
+                            <span>Born on {patient.subscriberDob}</span>
+                        </div>
+                    </div>
+                    <Separator />
+                    <div className="flex flex-col space-y-2">
+                        <h4 className="font-medium flex items-center gap-2"><Briefcase className="w-4 h-4" />Primary Insurance</h4>
+                        <div className="pl-6 space-y-1">
+                            <div className="flex items-center gap-3"><Shield className="w-4 h-4 text-muted-foreground" />{patient.primaryInsuranceProvider}</div>
+                            <div className="flex items-center gap-3"><span className="text-muted-foreground text-xs w-16">Policy #:</span><span>{patient.primaryInsuranceId}</span></div>
+                            <div className="flex items-center gap-3"><span className="text-muted-foreground text-xs w-16">Group #:</span><span>{patient.primaryInsuranceGroup}</span></div>
+                        </div>
+                    </div>
+                     {patient.secondaryInsuranceProvider && (
+                        <>
+                         <Separator />
+                         <div className="flex flex-col space-y-2">
+                            <h4 className="font-medium flex items-center gap-2"><Briefcase className="w-4 h-4" />Secondary Insurance</h4>
+                            <div className="pl-6 space-y-1">
+                                <div className="flex items-center gap-3"><Shield className="w-4 h-4 text-muted-foreground" />{patient.secondaryInsuranceProvider}</div>
+                                <div className="flex items-center gap-3"><span className="text-muted-foreground text-xs w-16">Policy #:</span><span>{patient.secondaryInsuranceId}</span></div>
+                                <div className="flex items-center gap-3"><span className="text-muted-foreground text-xs w-16">Group #:</span><span>{patient.secondaryInsuranceGroup}</span></div>
+                            </div>
+                        </div>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+        <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Financial Summary</CardTitle>
@@ -121,8 +167,6 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                     </div>
                 </CardContent>
             </Card>
-        </div>
-        <div className="lg:col-span-2">
             <Tabs defaultValue="claims" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="claims">Claims History</TabsTrigger>

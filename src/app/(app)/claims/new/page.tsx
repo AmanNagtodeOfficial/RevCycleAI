@@ -112,7 +112,7 @@ export default function NewClaimPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Patient & Insured Information</CardTitle>
+            <CardTitle>Patient Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
@@ -131,56 +131,59 @@ export default function NewClaimPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="patient-address">Patient Address</Label>
-              <Input id="patient-address" defaultValue="123 Wellness Way" required />
-            </div>
-            <div className="flex items-center space-x-2 pt-4">
-              <Checkbox id="insured-same-as-patient" defaultChecked />
-              <Label htmlFor="insured-same-as-patient">
-                Insured is the same as the patient
-              </Label>
+              <Input id="patient-address" defaultValue="123 Wellness Way, Healthville, CA 90210" required />
             </div>
           </CardContent>
         </Card>
         
         <Card>
             <CardHeader>
-                <CardTitle>Payer & Provider Information</CardTitle>
+                <CardTitle>Subscriber & Payer Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <Label htmlFor="payer">Payer</Label>
-                     <Select required defaultValue="aetna">
-                        <SelectTrigger id="payer">
-                            <SelectValue placeholder="Select a payer" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="aetna">Aetna</SelectItem>
-                            <SelectItem value="cigna">Cigna</SelectItem>
-                            <SelectItem value="uhc">United Healthcare</SelectItem>
-                            <SelectItem value="bcbs">BlueCross BlueShield</SelectItem>
-                            <SelectItem value="humana">Humana</SelectItem>
-                        </SelectContent>
-                    </Select>
+            <CardContent className="space-y-6">
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="insured-same-as-patient" defaultChecked />
+                    <Label htmlFor="insured-same-as-patient">
+                        Subscriber is the same as the patient
+                    </Label>
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="provider">Rendering Provider</Label>
-                     <Select required defaultValue="dr-reed">
-                        <SelectTrigger id="provider">
-                            <SelectValue placeholder="Select a provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="dr-reed">Dr. Evelyn Reed</SelectItem>
-                            <SelectItem value="dr-carter">Dr. Ben Carter</SelectItem>
-                            <SelectItem value="dr-khan">Dr. Samira Khan</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                 <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="subscriber-name">Subscriber Name</Label>
+                        <Input id="subscriber-name" defaultValue="Eleanor Vance" required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="payer">Payer</Label>
+                         <Select required defaultValue="aetna">
+                            <SelectTrigger id="payer">
+                                <SelectValue placeholder="Select a payer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="aetna">Aetna</SelectItem>
+                                <SelectItem value="cigna">Cigna</SelectItem>
+                                <SelectItem value="uhc">United Healthcare</SelectItem>
+                                <SelectItem value="bcbs">BlueCross BlueShield</SelectItem>
+                                <SelectItem value="humana">Humana</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                 </div>
+                 <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="policy-id">Policy ID</Label>
+                        <Input id="policy-id" defaultValue="AET123456789" required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="group-id">Group Number</Label>
+                        <Input id="group-id" defaultValue="GRP-XYZ1" required />
+                    </div>
+                 </div>
             </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Clinical Information</CardTitle>
+            <CardTitle>Clinical & Provider Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
              <Label>Diagnosis Codes (ICD-10)</Label>
@@ -189,6 +192,19 @@ export default function NewClaimPage() {
                <Input placeholder="B." />
                <Input placeholder="C." />
                <Input placeholder="D." />
+            </div>
+             <div className="space-y-2 pt-4">
+                <Label htmlFor="provider">Rendering Provider</Label>
+                 <Select required defaultValue="dr-reed">
+                    <SelectTrigger id="provider">
+                        <SelectValue placeholder="Select a provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="dr-reed">Dr. Evelyn Reed</SelectItem>
+                        <SelectItem value="dr-carter">Dr. Ben Carter</SelectItem>
+                        <SelectItem value="dr-khan">Dr. Samira Khan</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
           </CardContent>
         </Card>
