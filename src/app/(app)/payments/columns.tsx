@@ -1,3 +1,4 @@
+
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
@@ -11,13 +12,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { claims, patients } from "@/lib/data"
+import { Badge } from "@/components/ui/badge"
 
 export const columns: ColumnDef<Payment>[] = [
   {
-    accessorKey: "id",
-    header: "Payment ID",
+    id: 'expander',
+    header: () => null,
+    cell: ({ row }) => {
+      return (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={row.getToggleExpandedHandler()}
+        >
+          {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <span className="sr-only">Toggle details</span>
+        </Button>
+      )
+    },
   },
   {
     accessorKey: "claimId",
@@ -30,7 +45,28 @@ export const columns: ColumnDef<Payment>[] = [
   },
   {
     accessorKey: "payerName",
-    header: "Payer",
+    header: "Paying Payer",
+    cell: ({ row }) => <Badge variant="secondary">{row.getValue("payerName")}</Badge>
+  },
+  {
+    id: 'primaryInsurance',
+    header: 'Primary Payer',
+    cell: ({ row }) => {
+      const claim = claims.find(c => c.id === row.original.claimId)
+      if (!claim) return 'N/A'
+      const patient = patients.find(p => p.id === claim.patientId)
+      return patient?.primaryInsuranceProvider || 'N/A'
+    }
+  },
+  {
+    id: 'secondaryInsurance',
+    header: 'Secondary Payer',
+    cell: ({ row }) => {
+      const claim = claims.find(c => c.id === row.original.claimId)
+      if (!claim) return 'N/A'
+      const patient = patients.find(p => p.id === claim.patientId)
+      return patient?.secondaryInsuranceProvider || 'N/A'
+    }
   },
   {
     accessorKey: "paymentDate",
@@ -48,10 +84,6 @@ export const columns: ColumnDef<Payment>[] = [
 
       return <div className="text-right font-medium">{formatted}</div>
     },
-  },
-   {
-    accessorKey: "remittanceCode",
-    header: "Remit Code",
   },
   {
     id: "actions",

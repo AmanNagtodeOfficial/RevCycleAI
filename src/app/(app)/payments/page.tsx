@@ -1,5 +1,8 @@
+
+'use client'
+import { Row } from '@tanstack/react-table';
 import { PageHeader } from "@/components/page-header";
-import { payments } from "@/lib/payments-data";
+import { payments, Payment } from "@/lib/payments-data";
 import { columns } from "./columns";
 import { DataTable } from "@/components/data-table";
 import {
@@ -9,6 +12,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DollarSign, Clock, TrendingUp, FileCheck } from "lucide-react";
+
+function renderSubComponent({ row }: { row: Row<Payment> }) {
+    const payment = row.original;
+    const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+    return (
+        <div className="p-4 bg-muted/50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                    <h4 className="font-semibold">Payment Details</h4>
+                    <p className="text-sm"><span className="text-muted-foreground">Payment Method:</span> {payment.paymentMethod}</p>
+                    {payment.checkNumber && <p className="text-sm"><span className="text-muted-foreground">Check Number:</span> {payment.checkNumber}</p>}
+                </div>
+                <div className="space-y-2">
+                    <h4 className="font-semibold">Financials</h4>
+                     <p className="text-sm"><span className="text-muted-foreground">Billed Amount:</span> {formatCurrency(payment.billedAmount)}</p>
+                    <p className="text-sm"><span className="text-muted-foreground">Patient Responsibility:</span> {formatCurrency(payment.patientResponsibility)}</p>
+                </div>
+                <div className="space-y-2">
+                    <h4 className="font-semibold">Adjustments</h4>
+                    {payment.adjustments.map((adj, i) => (
+                        <div key={i} className="flex justify-between text-sm">
+                            <span>{adj.reasonCode} - {adj.description}</span>
+                            <span>{formatCurrency(adj.amount)}</span>
+                        </div>
+                    ))}
+                     {!payment.adjustments.length && <p className='text-sm text-muted-foreground'>No adjustments for this payment.</p>}
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export default function PaymentsPage() {
     const data = payments;
@@ -63,7 +98,7 @@ export default function PaymentsPage() {
                 </Card>
             </div>
 
-            <DataTable columns={columns} data={data} filterColumn="payerName" filterPlaceholder="Filter by payer..." />
+            <DataTable columns={columns} data={data} filterColumn="payerName" filterPlaceholder="Filter by payer..." renderSubComponent={renderSubComponent} />
         </div>
     )
 }

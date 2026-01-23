@@ -1,3 +1,10 @@
+
+export type PaymentAdjustment = {
+  reasonCode: string;
+  description: string;
+  amount: number;
+};
+
 export type Payment = {
   id: string;
   claimId: string;
@@ -6,6 +13,11 @@ export type Payment = {
   amountPaid: number;
   remittanceCode: string; // e.g., 'CAS' for Contractual Obligation
   patientName: string;
+  billedAmount: number;
+  patientResponsibility: number;
+  paymentMethod: 'ERA' | 'Check';
+  checkNumber?: string;
+  adjustments: PaymentAdjustment[];
 };
 
 export const payments: Payment[] = [
@@ -17,6 +29,12 @@ export const payments: Payment[] = [
     amountPaid: 1250.75,
     remittanceCode: "CO-45",
     patientName: "Eleanor Vance",
+    billedAmount: 1500.00,
+    patientResponsibility: 50.00,
+    paymentMethod: 'ERA',
+    adjustments: [
+        { reasonCode: 'CO-45', description: 'Contractual Obligation', amount: -249.25 }
+    ]
   },
   {
     id: "PAY-002",
@@ -26,6 +44,12 @@ export const payments: Payment[] = [
     amountPaid: 1800.5,
     remittanceCode: "CO-45",
     patientName: "Isabella Chen",
+    billedAmount: 2000.00,
+    patientResponsibility: 0,
+    paymentMethod: 'ERA',
+    adjustments: [
+        { reasonCode: 'CO-45', description: 'Contractual Obligation', amount: -199.50 }
+    ]
   },
   {
     id: "PAY-003",
@@ -35,15 +59,28 @@ export const payments: Payment[] = [
     amountPaid: 990.9,
     remittanceCode: "PR-1",
     patientName: "Kenji Tanaka",
+    billedAmount: 1100.00,
+    patientResponsibility: 109.10,
+    paymentMethod: 'Check',
+    checkNumber: 'CHK12345',
+    adjustments: [
+        { reasonCode: 'PR-1', description: 'Patient Responsibility (Deductible)', amount: -109.10 }
+    ]
   },
   {
     id: "PAY-004",
     claimId: "C20240715001", // Duplicate for demonstration
-    payerName: "Cigna",
+    payerName: "Cigna", // This is secondary payment
     paymentDate: "2024-07-28",
     amountPaid: 25.0,
     remittanceCode: "PR-2",
     patientName: "Eleanor Vance",
+    billedAmount: 50.00, // Billed to secondary
+    patientResponsibility: 25.00,
+    paymentMethod: 'ERA',
+    adjustments: [
+        { reasonCode: 'PR-2', description: 'Patient Responsibility (Co-insurance)', amount: -25.00 }
+    ]
   },
   {
     id: "PAY-005",
@@ -53,5 +90,12 @@ export const payments: Payment[] = [
     amountPaid: 700.0,
     remittanceCode: "CO-45",
     patientName: "Liam O'Connell",
+    billedAmount: 760.00,
+    patientResponsibility: 60.00,
+    paymentMethod: 'Check',
+    checkNumber: 'CHK54321',
+    adjustments: [
+        { reasonCode: 'CO-45', description: 'Contractual Obligation', amount: -60.00 }
+    ]
   },
 ];
