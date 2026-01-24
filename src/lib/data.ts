@@ -14,6 +14,12 @@ export type Claim = {
   diagnosis: string;
   lastActivity: string;
   history: { status: string; date: string; user: string }[];
+  aiSuggestions?: {
+    category: string;
+    field: string;
+    suggestion: string;
+    actionType: string;
+  }[];
 };
 
 export type Patient = {
@@ -95,6 +101,20 @@ export const claims: Claim[] = [
     history: [
         { status: "Denied", date: "2024-07-24", user: "Cigna" },
         { status: "Submitted", date: "2024-07-14", user: "Admin" },
+    ],
+    aiSuggestions: [
+      {
+        category: "Coding",
+        field: "Procedure/Diagnosis",
+        suggestion: "Procedure code 88305 may not be supported by diagnosis D48.5 for this payer. Review payer policy for covered diagnoses for this procedure.",
+        actionType: "Review Codes"
+      },
+      {
+        category: "Documentation",
+        field: "Clinical Notes",
+        suggestion: "Ensure clinical notes explicitly state the reason for the tissue exam and support the medical necessity.",
+        actionType: "Verify Documentation"
+      }
     ]
   },
   {
@@ -133,6 +153,14 @@ export const claims: Claim[] = [
     history: [
         { status: "Scrubbing", date: "2024-07-11", user: "AI System" },
         { status: "Created", date: "2024-07-10", user: "Admin" },
+    ],
+    aiSuggestions: [
+        {
+            category: "Coding",
+            field: "Modifiers",
+            suggestion: "Consider adding modifier 25 if a separate E/M service was provided on the same day as another procedure.",
+            actionType: "Add Modifier"
+        }
     ]
   },
   {

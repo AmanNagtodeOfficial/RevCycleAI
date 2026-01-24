@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, FileText, Lightbulb, Loader, User, DollarSign, Calendar, Stethoscope, Briefcase } from "lucide-react";
+import { AlertCircle, CheckCircle, FileText, Lightbulb, Loader, User, DollarSign, Calendar, Stethoscope, Briefcase, FileWarning, Wrench } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -132,31 +132,51 @@ export default function ClaimDetailPage({ params }: { params: { id: string } }) 
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>AI Claim Scrubber</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="text-accent" />
+                        <span>AI Claim Scrubber</span>
+                    </CardTitle>
+                    <CardDescription>Automated analysis and suggestions to improve claim accuracy.</CardDescription>
                 </CardHeader>
-                <CardContent className="text-center">
-                    <p className="text-sm text-muted-foreground">Denial Risk Score</p>
-                    <p className={`text-6xl font-bold ${denialRiskColor}`}>{claim.riskScore}%</p>
-                </CardContent>
-                <CardFooter>
-                    {claim.denialReason ? (
+                <CardContent className="space-y-4">
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Denial Risk Score</p>
+                        <p className={`text-6xl font-bold ${denialRiskColor}`}>{claim.riskScore}%</p>
+                    </div>
+                    {claim.denialReason && (
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Denial Reason: {claim.denialReason}</AlertTitle>
-                            <AlertDescription>
-                                Our AI suggests reviewing the patient's policy for medical necessity clauses.
-                            </AlertDescription>
                         </Alert>
-                    ) : (
+                    )}
+
+                    {claim.aiSuggestions && claim.aiSuggestions.length > 0 && (
+                        <div>
+                            <h4 className="font-semibold mb-2 text-sm">Actionable Suggestions:</h4>
+                            <div className="space-y-3">
+                                {claim.aiSuggestions.map((suggestion, index) => (
+                                    <div key={index} className="text-sm p-3 border rounded-lg bg-muted/50">
+                                        <p className="font-semibold mb-1">{suggestion.suggestion}</p>
+                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1"><FileWarning className="h-3 w-3" /> {suggestion.category}: {suggestion.field}</span>
+                                            <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Action: {suggestion.actionType}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!claim.denialReason && (!claim.aiSuggestions || claim.aiSuggestions.length === 0) && (
                          <Alert>
-                            <Lightbulb className="h-4 w-4" />
-                            <AlertTitle>AI Suggestions</AlertTitle>
+                            <CheckCircle className="h-4 w-4 text-success" />
+                            <AlertTitle>No Issues Found</AlertTitle>
                             <AlertDescription>
-                                No immediate issues found, but consider adding a modifier for procedure code {claim.procedure.split(' ')[0]} to increase clarity.
+                                The AI scrubber did not find any critical issues with this claim.
                             </AlertDescription>
                         </Alert>
                     )}
-                </CardFooter>
+                </CardContent>
             </Card>
         </div>
       </div>

@@ -22,14 +22,21 @@ export type GenerateFixSuggestionsInput = z.infer<
   typeof GenerateFixSuggestionsInputSchema
 >;
 
+const SuggestionSchema = z.object({
+  category: z.string().describe('The category of the issue (e.g., "Coding", "Patient Info", "Authorization").'),
+  field: z.string().describe('The specific field related to the issue (e.g., "Procedure Code", "Patient DOB").'),
+  suggestion: z.string().describe('A specific, actionable suggestion for the fix.'),
+  actionType: z.string().describe('The type of action required (e.g., "Correct Value", "Add Modifier", "Verify Info").'),
+});
+
 const GenerateFixSuggestionsOutputSchema = z.object({
-  suggestions: z.array(z.string()).describe('The AI-generated fix suggestions.'),
+  suggestions: z.array(SuggestionSchema).describe('A list of structured, AI-generated fix suggestions.'),
   riskScore: z
     .number()
     .describe('A risk score (0-100) indicating the likelihood of denial.'),
   explanation: z
     .string()
-    .describe('An explanation of why the suggestions are being made.'),
+    .describe('An explanation of why the suggestions are being made and the risk score.'),
 });
 export type GenerateFixSuggestionsOutput = z.infer<
   typeof GenerateFixSuggestionsOutputSchema
@@ -60,17 +67,24 @@ const prompt = ai.definePrompt({
 
   Based on your analysis, provide the following:
 
-  1.  A list of AI-generated fix suggestions.
+  1.  A list of structured, AI-generated fix suggestions.
   2.  A risk score (0-100) indicating the likelihood of denial.
-  3.  An explanation of why the suggestions are being made.
+  3.  An explanation of why the suggestions are being made and the risk score.
 
-  Ensure that the suggestions are clear, concise, and actionable. The risk score should be based on the severity of the potential issues and the likelihood of denial. The explanation should provide context and justification for the suggestions and risk score.
+  Ensure that the suggestions are clear, concise, and actionable. The risk score should be based on the severity of the potential issues and the likelihood of denial.
 
   Output MUST be a JSON object conforming to the following schema:
   {
-    "suggestions": ["suggestion 1", "suggestion 2", ...],
-    "riskScore": 50,
-    "explanation": "Explanation of the suggestions and risk score."
+    "suggestions": [
+        {
+            "category": "Coding",
+            "field": "Procedure Code",
+            "suggestion": "Procedure code XXXXX may not be appropriate for diagnosis YYYYY. Consider using a more specific diagnosis or adding a supporting diagnosis.",
+            "actionType": "Review Codes"
+        }
+    ],
+    "riskScore": 92,
+    "explanation": "The high risk score is due to a potential mismatch between the procedure and diagnosis, which is a common reason for medical necessity denials with this payer."
   }`,
 });
 

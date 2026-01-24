@@ -15,6 +15,8 @@ import {
 import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, Banknote } from "lucide-react"
 import { Row } from "@tanstack/react-table"
 import { payments, Payment } from "@/lib/payments-data";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge"
 
 function renderSubComponent({ row }: { row: Row<Claim> }) {
     const claim = row.original;
@@ -82,6 +84,10 @@ export default function ClaimsPage() {
       denied: data.filter(c => c.status === 'Denied').length
   }
 
+  const needsAttentionClaims = data.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
+  const inProgressClaims = data.filter(c => c.status === 'Pending' || c.status === 'Submitted');
+  const completedClaims = data.filter(c => c.status === 'Paid');
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -132,7 +138,26 @@ export default function ClaimsPage() {
         </Card>
       </div>
 
-      <DataTable columns={columns} data={data} filterColumn="patient" filterPlaceholder="Filter claims by patient..." renderSubComponent={renderSubComponent} />
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">All Claims <Badge variant="secondary" className="ml-2">{data.length}</Badge></TabsTrigger>
+          <TabsTrigger value="needs-attention">Needs Attention <Badge variant="destructive" className="ml-2">{needsAttentionClaims.length}</Badge></TabsTrigger>
+          <TabsTrigger value="in-progress">In Progress <Badge className="bg-accent text-accent-foreground ml-2">{inProgressClaims.length}</Badge></TabsTrigger>
+          <TabsTrigger value="completed">Completed <Badge className="bg-success text-success-foreground ml-2">{completedClaims.length}</Badge></TabsTrigger>
+        </TabsList>
+        <TabsContent value="all" className="mt-4">
+            <DataTable columns={columns} data={data} filterColumn="patient" filterPlaceholder="Filter claims by patient..." renderSubComponent={renderSubComponent} />
+        </TabsContent>
+        <TabsContent value="needs-attention" className="mt-4">
+            <DataTable columns={columns} data={needsAttentionClaims} filterColumn="patient" filterPlaceholder="Filter claims by patient..." renderSubComponent={renderSubComponent} />
+        </TabsContent>
+        <TabsContent value="in-progress" className="mt-4">
+            <DataTable columns={columns} data={inProgressClaims} filterColumn="patient" filterPlaceholder="Filter claims by patient..." renderSubComponent={renderSubComponent} />
+        </TabsContent>
+        <TabsContent value="completed" className="mt-4">
+            <DataTable columns={columns} data={completedClaims} filterColumn="patient" filterPlaceholder="Filter claims by patient..." renderSubComponent={renderSubComponent} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
