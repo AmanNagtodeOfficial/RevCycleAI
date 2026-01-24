@@ -17,7 +17,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { DollarSign, Clock, TrendingUp, FileCheck, FileText, Banknote, Upload, FileUp, PlusCircle, Trash2, Loader, AlertCircle, CheckCircle } from "lucide-react";
+import { DollarSign, Clock, TrendingUp, FileCheck, FileText, Banknote, Upload, FileUp, PlusCircle, Trash2, Loader, AlertCircle, CheckCircle, Info, Search } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,10 +28,11 @@ import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
 // Sub-component for rendering payment details in an expanded row
 function renderPaymentSubComponent({ row }: { row: Row<Payment> }) {
     const payment = row.original;
-    const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
     const allowedAmount = payment.amountPaid + payment.patientResponsibility;
 
     return (
@@ -234,7 +235,11 @@ const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: ()
     const [adjustments, setAdjustments] = useState<AdjustmentLine[]>([
         { id: 1, reasonCode: 'CO-45', description: 'Contractual Obligation', amount: '0.00' },
     ]);
-    const [billedAmount, setBilledAmount] = useState(claim.amount.toString());
+
+    const existingPayments = payments.filter(p => p.claimId === claim.id);
+    const amountAlreadyPaidByOtherPayers = existingPayments.reduce((acc, p) => acc + p.amountPaid, 0);
+    const initialBilledAmount = claim.amount;
+    
     const [paymentAmount, setPaymentAmount] = useState('');
 
     const handleAddAdjustment = () => setAdjustments([...adjustments, { id: Date.now(), reasonCode: '', description: '', amount: '' }]);
@@ -244,20 +249,33 @@ const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: ()
     };
 
     const totalAdjustments = adjustments.reduce((acc, line) => acc + (parseFloat(line.amount) || 0), 0);
-    const patientResponsibility = (parseFloat(billedAmount) || 0) - (parseFloat(paymentAmount) || 0) - totalAdjustments;
+    const patientResponsibility = initialBilledAmount - amountAlreadyPaidByOtherPayers - (parseFloat(paymentAmount) || 0) - totalAdjustments;
+    const balanceRemaining = patientResponsibility;
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsPosting(true);
         setTimeout(() => {
             setIsPosting(false);
-            toast({ title: "Payment Posted Successfully", description: `A payment of $${paymentAmount} has been manually posted for claim ${claim.id}.` });
+            toast({ title: "Payment Posted Successfully", description: `A payment of ${formatCurrency(parseFloat(paymentAmount))} has been manually posted for claim ${claim.id}.` });
             onFinished();
         }, 1500);
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+             <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Posting Payment for Claim {claim.id}</AlertTitle>
+                <AlertDescription>
+                    Patient: {claim.patient} | Payer: {claim.payer}
+                    {amountAlreadyPaidByOtherPayers > 0 && (
+                        <div className="mt-2 text-destructive font-medium">
+                            Note: {formatCurrency(amountAlreadyPaidByOtherPayers)} has already been paid on this claim.
+                        </div>
+                    )}
+                </AlertDescription>
+            </Alert>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
@@ -290,89 +308,99 @@ const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: ()
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5"/> Financial Summary</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2"><Label htmlFor="billedAmount">Total Billed Amount</Label><Input id="billedAmount" type="number" step="0.01" required value={billedAmount} onChange={(e) => setBilledAmount(e.target.value)} readOnly /></div>
-                            <div className="space-y-2"><Label htmlFor="paymentAmount">Payer Payment Amount</Label><Input id="paymentAmount" type="number" step="0.01" required value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} /></div>
+                            <div className="space-y-2"><Label htmlFor="billedAmount">Total Billed Amount</Label><Input id="billedAmount" value={formatCurrency(initialBilledAmount)} readOnly /></div>
+                            <div className="space-y-2"><Label htmlFor="alreadyPaid">Paid by Other Payers</Label><Input id="alreadyPaid" value={formatCurrency(amountAlreadyPaidByOtherPayers)} readOnly /></div>
+                            <div className="space-y-2"><Label htmlFor="paymentAmount">Payer Payment (This EOB)</Label><Input id="paymentAmount" type="number" step="0.01" required value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0.00" /></div>
                         </CardContent>
                         <CardFooter className="flex-col items-start space-y-4 bg-muted/50 p-4 rounded-b-lg">
-                            <div className="w-full flex justify-between items-center"><span className="text-muted-foreground">Total Adjustments</span><span className="font-medium">-{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalAdjustments)}</span></div>
-                            <div className="w-full flex justify-between items-center text-lg"><span className="font-semibold">Patient Responsibility</span><span className="font-bold text-destructive">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(patientResponsibility > 0 ? patientResponsibility : 0)}</span></div>
+                            <div className="w-full flex justify-between items-center"><span className="text-muted-foreground">Total Adjustments</span><span className="font-medium">-{formatCurrency(totalAdjustments)}</span></div>
+                            <div className="w-full flex justify-between items-center text-lg"><span className="font-semibold">Patient Responsibility</span><span className="font-bold text-destructive">{formatCurrency(patientResponsibility > 0 ? patientResponsibility : 0)}</span></div>
+                             <div className="w-full flex justify-between items-center text-lg"><span className="font-semibold">Balance Remaining</span><span className="font-bold">{formatCurrency(balanceRemaining)}</span></div>
                         </CardFooter>
                     </Card>
                 </div>
             </div>
-             <DialogFooter className="pt-6">
-                <Button variant="outline" type="button" onClick={onFinished}>Cancel</Button>
+             <div className="flex justify-end gap-2 pt-6">
+                <Button variant="outline" type="button" onClick={onFinished}>Cancel &amp; Start New</Button>
                 <Button type="submit" disabled={isPosting}>
                     {isPosting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                     Post Payment
                 </Button>
-            </DialogFooter>
+            </div>
         </form>
     );
 };
 
 // Component for the Manual EOB Posting tab
 const ManualPosting = () => {
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const manualPostingColumns: ColumnDef<Claim>[] = [
-        { 
-            accessorKey: "id", 
-            header: "Claim ID",
-            cell: ({row}) => <Link href={`/claims/${row.original.id}`} className="font-medium text-primary hover:underline">{row.original.id}</Link>
-        },
-        { accessorKey: "patient", header: "Patient" },
-        { accessorKey: "payer", header: "Payer" },
-        {
-            accessorKey: "amount",
-            header: () => <div className="text-right">Billed</div>,
-            cell: ({ row }) => <div className="text-right">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(row.getValue("amount"))}</div>
-        },
-        { accessorKey: "status", header: "Status" },
-        {
-            id: "actions",
-            cell: ({ row }) => (
-                <div className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedClaim(row.original)}>
-                        Post Payment
-                    </Button>
-                </div>
-            ),
-        },
-    ];
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchQuery) return;
 
-    const claimsToPost = claims.filter(c => c.status === 'Submitted' || c.status === 'Pending' || c.status === 'Denied');
+        setIsLoading(true);
+        setSelectedClaim(null);
+
+        // Simulate finding the claim
+        setTimeout(() => {
+            const potentialClaims = claims.filter(c => 
+                c.id.toLowerCase() === searchQuery.toLowerCase() || 
+                c.patient.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            if (potentialClaims.length === 1) {
+                setSelectedClaim(potentialClaims[0]);
+                toast({ title: "Claim Loaded", description: `Now posting payment for claim ${potentialClaims[0].id}.`});
+            } else if (potentialClaims.length > 1) {
+                toast({ title: "Multiple claims/patients found", description: "Please provide a more specific name or use a unique Claim ID.", variant: 'destructive'});
+            } else {
+                toast({ title: "Not Found", description: `No claim or patient found matching "${searchQuery}".`, variant: "destructive" });
+            }
+            setIsLoading(false);
+        }, 500);
+    };
+
+    const handleReset = () => {
+        setSelectedClaim(null);
+        setSearchQuery('');
+    };
+
+    if (selectedClaim) {
+        return <ManualPaymentForm claim={selectedClaim} onFinished={handleReset} />;
+    }
 
     return (
-         <div className="space-y-6">
-            <Card>
+        <div className="space-y-6">
+            <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                     <CardTitle>Manual Payment Workbench</CardTitle>
                     <CardDescription>
-                        This workbench lists claims awaiting manual payment posting. Select a claim to enter payment details from its EOB.
+                       Enter a Claim ID or Patient Name to find a claim and post a payment from its EOB.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <DataTable 
-                        columns={manualPostingColumns} 
-                        data={claimsToPost} 
-                        filterColumn="patient"
-                        filterPlaceholder="Filter by patient or claim ID..."
-                    />
-                </CardContent>
+                <form onSubmit={handleSearch}>
+                    <CardContent>
+                        <div className="flex items-end gap-2">
+                            <div className="flex-grow space-y-2">
+                                <Label htmlFor="claim-search">Search by Claim ID or Patient Name</Label>
+                                <Input 
+                                    id="claim-search" 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="e.g., C20240714002 or Marcus Thorne"
+                                />
+                            </div>
+                            <Button type="submit" disabled={isLoading || !searchQuery}>
+                                {isLoading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                Find Claim
+                            </Button>
+                        </div>
+                    </CardContent>
+                </form>
             </Card>
-
-            <Dialog open={!!selectedClaim} onOpenChange={(open) => !open && setSelectedClaim(null)}>
-                <DialogContent className="max-w-5xl">
-                    <DialogHeader>
-                        <DialogTitle>Post Payment for Claim {selectedClaim?.id}</DialogTitle>
-                        <DialogDescription>
-                            Enter payment details from the Explanation of Benefits (EOB) for patient {selectedClaim?.patient}. Billed amount: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(selectedClaim?.amount || 0)}.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedClaim && <ManualPaymentForm claim={selectedClaim} onFinished={() => setSelectedClaim(null)} />}
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };
@@ -383,7 +411,7 @@ export default function PaymentsPage() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Payments & Remittances" 
+                title="Payments &amp; Remittances" 
                 description="Track, manage, and post all payments from a central location." 
             />
             
@@ -406,3 +434,5 @@ export default function PaymentsPage() {
         </div>
     )
 }
+
+    
