@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
 const getStatusBadge = (status: Claim["status"]) => {
@@ -33,6 +33,25 @@ const getStatusBadge = (status: Claim["status"]) => {
 }
 
 export const columns: ColumnDef<Claim>[] = [
+  {
+    id: 'expander',
+    header: () => null,
+    cell: ({ row }) => {
+      if (!row.original.history?.length) {
+        return <div className="w-8 h-8" />; // Keep alignment with other rows
+      }
+      return (
+        <Button
+          variant="ghost"
+          onClick={row.getToggleExpandedHandler()}
+          className="h-8 w-8 p-0 data-[state=open]:bg-muted"
+        >
+          {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <span className="sr-only">Toggle details</span>
+        </Button>
+      )
+    },
+  },
   {
     accessorKey: "id",
     header: "Claim ID",
