@@ -27,6 +27,7 @@ import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
@@ -257,13 +258,12 @@ const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: ()
         setIsPosting(true);
         setTimeout(() => {
             setIsPosting(false);
-            toast({ title: "Payment Posted Successfully", description: `A payment of ${formatCurrency(parseFloat(paymentAmount))} has been manually posted for claim ${claim.id}.` });
             onFinished();
         }, 1500);
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-1">
              <Alert>
                 <Info className="h-4 w-4" />
                 <AlertTitle>Posting Payment for Claim {claim.id}</AlertTitle>
@@ -321,7 +321,7 @@ const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: ()
                 </div>
             </div>
              <div className="flex justify-end gap-2 pt-6">
-                <Button variant="outline" type="button" onClick={onFinished}>Cancel &amp; Start New</Button>
+                <Button variant="outline" type="button" onClick={onFinished}>Cancel</Button>
                 <Button type="submit" disabled={isPosting}>
                     {isPosting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                     Post Payment
@@ -333,77 +333,94 @@ const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: ()
 
 // Component for the Manual EOB Posting tab
 const ManualPosting = () => {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [claimToPost, setClaimToPost] = useState<Claim | null>(null);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchQuery) return;
-
-        setIsLoading(true);
-        setSelectedClaim(null);
-
-        // Simulate finding the claim
-        setTimeout(() => {
-            const potentialClaims = claims.filter(c => 
-                c.id.toLowerCase() === searchQuery.toLowerCase() || 
-                c.patient.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-
-            if (potentialClaims.length === 1) {
-                setSelectedClaim(potentialClaims[0]);
-                toast({ title: "Claim Loaded", description: `Now posting payment for claim ${potentialClaims[0].id}.`});
-            } else if (potentialClaims.length > 1) {
-                toast({ title: "Multiple claims/patients found", description: "Please provide a more specific name or use a unique Claim ID.", variant: 'destructive'});
-            } else {
-                toast({ title: "Not Found", description: `No claim or patient found matching "${searchQuery}".`, variant: "destructive" });
-            }
-            setIsLoading(false);
-        }, 500);
-    };
-
-    const handleReset = () => {
-        setSelectedClaim(null);
-        setSearchQuery('');
-    };
-
-    if (selectedClaim) {
-        return <ManualPaymentForm claim={selectedClaim} onFinished={handleReset} />;
+    // Get claims that are not fully paid to show in the work queue
+    const claimsNeedingPayment = claims.filter(c => c.status !== 'Paid');
+    
+    const onPostFinished = () => {
+        toast({ title: "Payment Posted Successfully", description: `The payment for claim ${claimToPost?.id} has been recorded.` });
+        setClaimToPost(null);
+        // In a real app, we would re-fetch or update the claim's status here.
     }
 
+    const workbenchColumns: ColumnDef<Claim>[] = [
+        { 
+            accessorKey: "patient", 
+            header: "Patient",
+            cell: ({ row }) => (
+                <Link href={`/patients/${row.original.patientId}`} className="font-medium text-primary hover:underline">{row.original.patient}</Link>
+            )
+        },
+        { 
+            accessorKey: "id", 
+            header: "Claim ID",
+            cell: ({ row }) => <span className="font-mono">{row.original.id}</span>
+        },
+        { accessorKey: "dateOfService", header: "DOS" },
+        { 
+            accessorKey: "amount", 
+            header: () => <div className="text-right">Billed</div>,
+            cell: ({ row }) => <div className="text-right font-medium">{formatCurrency(row.original.amount)}</div>
+        },
+        { 
+            accessorKey: "status", 
+            header: "Status",
+            cell: ({ row }) => {
+                 const status = row.original.status;
+                 let badge: React.ReactNode;
+                 switch (status) {
+                    case "Denied":
+                        badge = <Badge variant="destructive">{status}</Badge>; break;
+                    case "Pending":
+                        badge = <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">{status}</Badge>; break;
+                    case "Submitted":
+                        badge = <Badge variant="secondary">{status}</Badge>; break;
+                    case "Scrubbing":
+                        badge = <Badge variant="outline" className="border-primary/50 text-primary">{status}</Badge>; break;
+                    default:
+                        badge = <Badge>{status}</Badge>;
+                }
+                return badge;
+            }
+        },
+        {
+            id: 'actions',
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button size="sm" onClick={() => setClaimToPost(row.original)}>Post Payment</Button>
+                </div>
+            )
+        }
+    ];
+
     return (
-        <div className="space-y-6">
-            <Card className="max-w-2xl mx-auto">
+        <>
+            <Card>
                 <CardHeader>
                     <CardTitle>Manual Payment Workbench</CardTitle>
-                    <CardDescription>
-                       Enter a Claim ID or Patient Name to find a claim and post a payment from its EOB.
-                    </CardDescription>
+                    <CardDescription>This is a work queue of claims that may require manual payment posting. Select a claim to post a payment from its EOB.</CardDescription>
                 </CardHeader>
-                <form onSubmit={handleSearch}>
-                    <CardContent>
-                        <div className="flex items-end gap-2">
-                            <div className="flex-grow space-y-2">
-                                <Label htmlFor="claim-search">Search by Claim ID or Patient Name</Label>
-                                <Input 
-                                    id="claim-search" 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="e.g., C20240714002 or Marcus Thorne"
-                                />
-                            </div>
-                            <Button type="submit" disabled={isLoading || !searchQuery}>
-                                {isLoading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                                Find Claim
-                            </Button>
-                        </div>
-                    </CardContent>
-                </form>
+                <CardContent>
+                    <DataTable columns={workbenchColumns} data={claimsNeedingPayment} filterColumn="patient" filterPlaceholder="Filter by patient name or claim ID..." />
+                </CardContent>
             </Card>
-        </div>
+
+            <Dialog open={!!claimToPost} onOpenChange={(open) => { if (!open) setClaimToPost(null) }}>
+                <DialogContent className="max-w-6xl">
+                    <DialogHeader>
+                        <DialogTitle>Post Payment for Claim {claimToPost?.id}</DialogTitle>
+                        <DialogDescription>
+                            Enter payment details from the EOB. The patient responsibility will be calculated automatically.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {claimToPost && <ManualPaymentForm claim={claimToPost} onFinished={onPostFinished} />}
+                </DialogContent>
+            </Dialog>
+        </>
     );
 };
+
 
 
 // Main Page Component
@@ -434,5 +451,3 @@ export default function PaymentsPage() {
         </div>
     )
 }
-
-    
