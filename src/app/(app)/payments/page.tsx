@@ -1,453 +1,317 @@
 
-'use client'
+'use client';
 
-import React, { useState } from 'react';
-import { Row, ColumnDef } from '@tanstack/react-table';
+import React, { useState, useMemo } from 'react';
 import { PageHeader } from "@/components/page-header";
-import { payments, Payment, PaymentAdjustment } from "@/lib/payments-data";
-import { claims, Claim } from "@/lib/data";
-import { columns } from "./columns";
-import { DataTable } from "@/components/data-table";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-  CardDescription,
 } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { DollarSign, Clock, TrendingUp, FileCheck, FileText, Banknote, Upload, FileUp, PlusCircle, Trash2, Loader, AlertCircle, CheckCircle, Info, Search } from "lucide-react";
-import Link from 'next/link';
+import { DollarSign, Search, Calendar, RefreshCw, MessageSquare, Save, X, ChevronRight, ChevronDown, ChevronsRight } from "lucide-react";
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
-// Sub-component for rendering payment details in an expanded row
-function renderPaymentSubComponent({ row }: { row: Row<Payment> }) {
-    const payment = row.original;
-    const allowedAmount = payment.amountPaid + payment.patientResponsibility;
-
-    return (
-        <div className="p-4 bg-muted/50 text-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-3">
-                    <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4"/> Claim & Payment Details</h4>
-                    <p><span className="text-muted-foreground w-28 inline-block">Claim ID:</span> <Link href={`/claims/${payment.claimId}`} className="font-medium text-primary hover:underline">{payment.claimId}</Link></p>
-                    <p><span className="text-muted-foreground w-28 inline-block">Payment Method:</span> {payment.paymentMethod}</p>
-                    {payment.checkNumber && <p><span className="text-muted-foreground w-28 inline-block">Check Number:</span> {payment.checkNumber}</p>}
-                </div>
-                <div className="space-y-3">
-                    <h4 className="font-semibold flex items-center gap-2"><Banknote className="h-4 w-4"/> Financial Summary</h4>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Billed Amount:</span> <span>{formatCurrency(payment.billedAmount)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Allowed Amount:</span> <span>{formatCurrency(allowedAmount)}</span></div>
-                    <div className="flex justify-between font-medium"><span className="text-muted-foreground">Amount Paid:</span> <span>{formatCurrency(payment.amountPaid)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Patient Responsibility:</span> <span>{formatCurrency(payment.patientResponsibility)}</span></div>
-                </div>
-                <div className="space-y-3">
-                    <h4 className="font-semibold">Adjustments</h4>
-                    {payment.adjustments.map((adj, i) => (
-                        <div key={i} className="flex justify-between">
-                            <div>
-                                <span className="font-mono text-xs bg-background border rounded-sm px-1 py-0.5">{adj.reasonCode}</span>
-                                <span className="ml-2">{adj.description}</span>
-                            </div>
-                            <span>{formatCurrency(adj.amount)}</span>
-                        </div>
-                    ))}
-                     {!payment.adjustments.length && <p className='text-muted-foreground'>No adjustments for this payment.</p>}
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// Component for the Payment History tab
-const PaymentList = () => {
-    const data = payments;
-    const stats = {
-        totalReceived: data.reduce((acc, p) => acc + p.amountPaid, 0),
-        totalTransactions: data.length,
-        avgPayment: data.reduce((acc, p) => acc + p.amountPaid, 0) / data.length,
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Received (All Time)</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(stats.totalReceived)}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Payment Transactions</CardTitle>
-                        <FileCheck className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Average Payment Amount</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(stats.avgPayment)}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Avg. Days to Payment</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">21 Days</div>
-                        <p className="text-xs text-muted-foreground">-2 days from last month</p>
-                    </CardContent>
-                </Card>
-            </div>
-            <DataTable columns={columns} data={data} filterColumn="payerName" filterPlaceholder="Filter by payer..." renderSubComponent={renderPaymentSubComponent} />
-        </div>
-    );
+type EncounterLine = {
+    id: number;
+    case: string;
+    procCode: string;
+    rCode?: string;
+    dosFrom: string;
+    dosTo: string;
+    claimNum: string;
+    charge: number;
+    rem: number;
+    coPayAmt: number;
+    adj: number;
+    reason: string;
+    withHold: number;
+    balance: number;
+    nextAction: string;
+    lineSubStatus: string;
+    acctDate: string;
 };
 
-// Component for the ERA Posting tab
-const EraPosting = () => {
-    const [isPosting, setIsPosting] = useState(false);
-    const [fileName, setFileName] = useState('');
-    const [postResult, setPostResult] = useState<{success: boolean, message: string, details?: any} | null>(null);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        setFileName(file ? file.name : '');
-    };
-
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (!fileName) {
-            toast({ title: "No file selected", description: "Please select an ERA file to post.", variant: "destructive" });
-            return;
-        }
-        setIsPosting(true);
-        setPostResult(null);
-
-        setTimeout(() => {
-            setIsPosting(false);
-            const postSuccess = Math.random() > 0.2;
-            if (postSuccess) {
-                setPostResult({
-                    success: true,
-                    message: `Successfully posted ERA file: ${fileName}`,
-                    details: { totalPayments: 5, totalPosted: 12345.67, claimsAffected: ['C20240715001', 'C20240709005', 'C20240701008', 'C20240708006', 'C20240714002'] }
-                });
-                toast({ title: "ERA Posted Successfully", description: `Processed ${fileName} and applied payments.` });
-            } else {
-                setPostResult({
-                    success: false,
-                    message: `Failed to post ERA file: ${fileName}.`,
-                    details: { error: "File format not recognized or contains errors.", line: 42 }
-                });
-                toast({ title: "ERA Posting Failed", description: "There was an error processing the ERA file.", variant: 'destructive' });
-            }
-        }, 2000);
-    };
-
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-                <form onSubmit={handleSubmit}>
-                    <CardHeader>
-                        <CardTitle>Upload ERA File</CardTitle>
-                        <CardDescription>Select the ERA file (ANSI 835) you want to post. The system will automatically parse and apply payments.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid w-full items-center gap-1.5">
-                            <Label htmlFor="era-file">ERA File (ANSI 835)</Label>
-                            <Input id="era-file" type="file" accept=".x12,.835,.txt" onChange={handleFileChange} />
-                        </div>
-                        {fileName && <p className="text-sm text-muted-foreground">Selected file: {fileName}</p>}
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" disabled={isPosting || !fileName}>
-                            {isPosting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4"/>}
-                            Post ERA
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Card>
-            {postResult && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Posting Results</CardTitle>
-                        <CardDescription>Summary of the ERA posting process.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {postResult.success ? (
-                            <Alert variant="default" className="bg-success/10 border-success/50">
-                                <CheckCircle className="h-4 w-4 text-success" />
-                                <AlertTitle className="text-success">Posting Successful</AlertTitle>
-                                <AlertDescription className="text-success/90">
-                                    <p className="font-semibold">{postResult.message}</p>
-                                    <div className="mt-2 space-y-1 text-sm">
-                                        <p><strong>Total Payments:</strong> {postResult.details.totalPayments}</p>
-                                        <p><strong>Total Amount Posted:</strong> {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(postResult.details.totalPosted)}</p>
-                                        <p><strong>Claims Affected:</strong> {postResult.details.claimsAffected.length}</p>
-                                    </div>
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Posting Failed</AlertTitle>
-                                <AlertDescription>
-                                    <p className="font-semibold">{postResult.message}</p>
-                                    <div className="mt-2 space-y-1 text-sm">
-                                        <p><strong>Error:</strong> {postResult.details.error}</p>
-                                        <p><strong>Approximate Location:</strong> Line {postResult.details.line}</p>
-                                    </div>
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-        </div>
-    );
-};
-
-type AdjustmentLine = Omit<PaymentAdjustment, 'amount'> & {id: number, amount: string};
-
-const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: () => void }) => {
-    const [isPosting, setIsPosting] = useState(false);
-    const [adjustments, setAdjustments] = useState<AdjustmentLine[]>([
-        { id: 1, reasonCode: 'CO-45', description: 'Contractual Obligation', amount: '0.00' },
-    ]);
-
-    const existingPayments = payments.filter(p => p.claimId === claim.id);
-    const amountAlreadyPaidByOtherPayers = existingPayments.reduce((acc, p) => acc + p.amountPaid, 0);
-    const initialBilledAmount = claim.amount;
-    
-    const [paymentAmount, setPaymentAmount] = useState('');
-
-    const handleAddAdjustment = () => setAdjustments([...adjustments, { id: Date.now(), reasonCode: '', description: '', amount: '' }]);
-    const handleRemoveAdjustment = (id: number) => setAdjustments(adjustments.filter((line) => line.id !== id));
-    const handleAdjustmentChange = (id: number, field: keyof Omit<AdjustmentLine, 'id'>, value: string) => {
-        setAdjustments(adjustments.map((line) => line.id === id ? { ...line, [field]: value } : line));
-    };
-
-    const totalAdjustments = adjustments.reduce((acc, line) => acc + (parseFloat(line.amount) || 0), 0);
-    const patientResponsibility = initialBilledAmount - amountAlreadyPaidByOtherPayers - (parseFloat(paymentAmount) || 0) - totalAdjustments;
-    const balanceRemaining = patientResponsibility;
-
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setIsPosting(true);
-        setTimeout(() => {
-            setIsPosting(false);
-            onFinished();
-        }, 1500);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6 p-1">
-             <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Posting Payment for Claim {claim.id}</AlertTitle>
-                <AlertDescription>
-                    Patient: {claim.patient} | Payer: {claim.payer}
-                    {amountAlreadyPaidByOtherPayers > 0 && (
-                        <div className="mt-2 text-destructive font-medium">
-                            Note: {formatCurrency(amountAlreadyPaidByOtherPayers)} has already been paid on this claim.
-                        </div>
-                    )}
-                </AlertDescription>
-            </Alert>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle>Payment Details</CardTitle><CardDescription>Enter the primary details from the remittance advice.</CardDescription></CardHeader>
-                        <CardContent className="space-y-6">
-                             <div className="grid md:grid-cols-3 gap-6">
-                                <div className="space-y-2"><Label htmlFor="paymentDate">Payment Date</Label><Input id="paymentDate" type="date" defaultValue={new Date().toISOString().substring(0, 10)} required /></div>
-                                <div className="space-y-2"><Label htmlFor="paymentMethod">Payment Method</Label><Select required defaultValue="check"><SelectTrigger id="paymentMethod"><SelectValue placeholder="Select method" /></SelectTrigger><SelectContent><SelectItem value="check">Check</SelectItem><SelectItem value="era">ERA/EFT</SelectItem><SelectItem value="creditcard">Credit Card</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select></div>
-                                <div className="space-y-2"><Label htmlFor="checkNumber">Check / Reference #</Label><Input id="checkNumber" placeholder="CHK12345" /></div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Adjustment Details</CardTitle><CardDescription>Enter each adjustment from the EOB. The patient responsibility will be calculated automatically.</CardDescription></CardHeader>
-                        <CardContent className="space-y-4">
-                            {adjustments.map((line, index) => (
-                                <div key={line.id} className="grid grid-cols-12 gap-x-4 gap-y-2 items-end p-3 rounded-md border bg-muted/20">
-                                    <div className="col-span-12"><p className="font-medium text-sm">Adjustment #{index+1}</p></div>
-                                    <div className="col-span-6 md:col-span-3 space-y-1"><Label htmlFor={`reasonCode-${line.id}`} className="text-xs">Reason Code</Label><Input id={`reasonCode-${line.id}`} required placeholder="e.g. CO-45" value={line.reasonCode} onChange={e => handleAdjustmentChange(line.id, 'reasonCode', e.target.value)} /></div>
-                                    <div className="col-span-12 md:col-span-5 space-y-1"><Label htmlFor={`description-${line.id}`} className="text-xs">Description</Label><Input id={`description-${line.id}`} required placeholder="e.g. Contractual Obligation" value={line.description} onChange={e => handleAdjustmentChange(line.id, 'description', e.target.value)} /></div>
-                                    <div className="col-span-6 md:col-span-3 space-y-1"><Label htmlFor={`amount-${line.id}`} className="text-xs">Adjustment Amount ($)</Label><Input id={`amount-${line.id}`} type="number" step="0.01" required placeholder="150.00" value={line.amount} onChange={e => handleAdjustmentChange(line.id, 'amount', e.target.value)} /></div>
-                                    <div className="col-span-12 md:col-span-1 flex items-center justify-end">{adjustments.length > 1 && (<Button variant="ghost" size="icon" onClick={() => handleRemoveAdjustment(line.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /><span className="sr-only">Remove line</span></Button>)}</div>
-                                </div>
-                            ))}
-                            <Button type="button" variant="outline" size="sm" onClick={handleAddAdjustment} className="mt-2"><PlusCircle className="mr-2 h-4 w-4" />Add Adjustment Line</Button>
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="lg:col-span-1">
-                    <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5"/> Financial Summary</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2"><Label htmlFor="billedAmount">Total Billed Amount</Label><Input id="billedAmount" value={formatCurrency(initialBilledAmount)} readOnly /></div>
-                            <div className="space-y-2"><Label htmlFor="alreadyPaid">Paid by Other Payers</Label><Input id="alreadyPaid" value={formatCurrency(amountAlreadyPaidByOtherPayers)} readOnly /></div>
-                            <div className="space-y-2"><Label htmlFor="paymentAmount">Payer Payment (This EOB)</Label><Input id="paymentAmount" type="number" step="0.01" required value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0.00" /></div>
-                        </CardContent>
-                        <CardFooter className="flex-col items-start space-y-4 bg-muted/50 p-4 rounded-b-lg">
-                            <div className="w-full flex justify-between items-center"><span className="text-muted-foreground">Total Adjustments</span><span className="font-medium">-{formatCurrency(totalAdjustments)}</span></div>
-                            <div className="w-full flex justify-between items-center text-lg"><span className="font-semibold">Patient Responsibility</span><span className="font-bold text-destructive">{formatCurrency(patientResponsibility > 0 ? patientResponsibility : 0)}</span></div>
-                             <div className="w-full flex justify-between items-center text-lg"><span className="font-semibold">Balance Remaining</span><span className="font-bold">{formatCurrency(balanceRemaining)}</span></div>
-                        </CardFooter>
-                    </Card>
-                </div>
-            </div>
-             <div className="flex justify-end gap-2 pt-6">
-                <Button variant="outline" type="button" onClick={onFinished}>Cancel</Button>
-                <Button type="submit" disabled={isPosting}>
-                    {isPosting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                    Post Payment
-                </Button>
-            </div>
-        </form>
-    );
-};
-
-// Component for the Manual EOB Posting tab
-const ManualPosting = () => {
-    const [claimToPost, setClaimToPost] = useState<Claim | null>(null);
-
-    // Get claims that are not fully paid to show in the work queue
-    const claimsNeedingPayment = claims.filter(c => c.status !== 'Paid');
-    
-    const onPostFinished = () => {
-        toast({ title: "Payment Posted Successfully", description: `The payment for claim ${claimToPost?.id} has been recorded.` });
-        setClaimToPost(null);
-        // In a real app, we would re-fetch or update the claim's status here.
-    }
-
-    const workbenchColumns: ColumnDef<Claim>[] = [
-        { 
-            accessorKey: "patient", 
-            header: "Patient",
-            cell: ({ row }) => (
-                <Link href={`/patients/${row.original.patientId}`} className="font-medium text-primary hover:underline">{row.original.patient}</Link>
-            )
-        },
-        { 
-            accessorKey: "id", 
-            header: "Claim ID",
-            cell: ({ row }) => <span className="font-mono">{row.original.id}</span>
-        },
-        { accessorKey: "dateOfService", header: "DOS" },
-        { 
-            accessorKey: "amount", 
-            header: () => <div className="text-right">Billed</div>,
-            cell: ({ row }) => <div className="text-right font-medium">{formatCurrency(row.original.amount)}</div>
-        },
-        { 
-            accessorKey: "status", 
-            header: "Status",
-            cell: ({ row }) => {
-                 const status = row.original.status;
-                 let badge: React.ReactNode;
-                 switch (status) {
-                    case "Denied":
-                        badge = <Badge variant="destructive">{status}</Badge>; break;
-                    case "Pending":
-                        badge = <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">{status}</Badge>; break;
-                    case "Submitted":
-                        badge = <Badge variant="secondary">{status}</Badge>; break;
-                    case "Scrubbing":
-                        badge = <Badge variant="outline" className="border-primary/50 text-primary">{status}</Badge>; break;
-                    default:
-                        badge = <Badge>{status}</Badge>;
-                }
-                return badge;
-            }
-        },
-        {
-            id: 'actions',
-            cell: ({ row }) => (
-                <div className="text-right">
-                    <Button size="sm" onClick={() => setClaimToPost(row.original)}>Post Payment</Button>
-                </div>
-            )
-        }
-    ];
-
-    return (
-        <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Manual Payment Workbench</CardTitle>
-                    <CardDescription>This is a work queue of claims that may require manual payment posting. Select a claim to post a payment from its EOB.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DataTable columns={workbenchColumns} data={claimsNeedingPayment} filterColumn="patient" filterPlaceholder="Filter by patient name or claim ID..." />
-                </CardContent>
-            </Card>
-
-            <Dialog open={!!claimToPost} onOpenChange={(open) => { if (!open) setClaimToPost(null) }}>
-                <DialogContent className="max-w-6xl">
-                    <DialogHeader>
-                        <DialogTitle>Post Payment for Claim {claimToPost?.id}</DialogTitle>
-                        <DialogDescription>
-                            Enter payment details from the EOB. The patient responsibility will be calculated automatically.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {claimToPost && <ManualPaymentForm claim={claimToPost} onFinished={onPostFinished} />}
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-};
-
+const initialEncounterLines: EncounterLine[] = [
+    { id: 1, case: '765565887-4797', procCode: '12123', dosFrom: '09/23/2015', dosTo: '09/23/2015', claimNum: 'BI-19435', charge: 50.00, rem: -9.00, coPayAmt: 0.00, adj: 0.00, reason: 'ADJ SFS', withHold: 0.00, balance: -9.00, nextAction: 'ACCEPT_INSURANCE', lineSubStatus: 'INS. OVER PAYMEN', acctDate: '06/06/2024' },
+    { id: 2, case: '765565887-4797', procCode: '99401', dosFrom: '08/08/2014', dosTo: '08/08/2014', claimNum: '156-13924', charge: 40.00, rem: 20.00, coPayAmt: 0.00, adj: 0.00, reason: 'ADJ SFS', withHold: 0.00, balance: 20.00, nextAction: '--Select--', lineSubStatus: '--Select--', acctDate: '06/06/2024' },
+    { id: 3, case: '765565887-4797', procCode: '97120', dosFrom: '11/20/2015', dosTo: '11/20/2015', claimNum: 'AW-19630', charge: 125.00, rem: -25.00, coPayAmt: 0.00, adj: 0.00, reason: 'ADJ SFS', withHold: 0.00, balance: -25.00, nextAction: '--Select--', lineSubStatus: 'INS. OVER PAYMEN', acctDate: '06/06/2024' },
+    { id: 4, case: '765565887-4797', procCode: '88330', dosFrom: '11/29/2015', dosTo: '11/29/2015', claimNum: 'tes-14800', charge: 150.00, rem: 142.00, coPayAmt: 0.00, adj: 0.00, reason: 'ADJ SFS', withHold: 0.00, balance: 142.00, nextAction: '--Select--', lineSubStatus: '--Select--', acctDate: '06/06/2024' },
+    { id: 5, case: '765565887-4842', procCode: '97110', rCode: '0603', dosFrom: '12/05/2015', dosTo: '12/05/2015', claimNum: 'AP-19810', charge: 100.00, rem: 100.00, coPayAmt: 0.00, adj: 0.00, reason: 'ADJ SFS', withHold: 0.00, balance: 100.00, nextAction: '--Select--', lineSubStatus: '--Select--', acctDate: '06/06/2024' },
+];
 
 
 // Main Page Component
 export default function PaymentsPage() {
+    const [paymentOption, setPaymentOption] = useState('search');
+    const [encounterLines, setEncounterLines] = useState(initialEncounterLines);
+
+    const handleLineChange = (id: number, field: keyof EncounterLine, value: any) => {
+        setEncounterLines(lines => lines.map(line => line.id === id ? { ...line, [field]: value } : line));
+    };
+
+    const groupedLines = useMemo(() => {
+        return encounterLines.reduce((acc, line) => {
+            (acc[line.case] = acc[line.case] || []).push(line);
+            return acc;
+        }, {} as Record<string, EncounterLine[]>);
+    }, [encounterLines]);
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat("en-US").format(amount);
+    }
+
+    const totals = useMemo(() => {
+        return encounterLines.reduce((acc, line) => {
+            acc.charge += line.charge;
+            acc.rem += line.rem;
+            acc.coPayAmt += line.coPayAmt;
+            acc.adj += line.adj;
+            acc.withHold += line.withHold;
+            acc.balance += line.balance;
+            return acc;
+        }, { charge: 0, rem: 0, coPayAmt: 0, adj: 0, withHold: 0, balance: 0 });
+    }, [encounterLines]);
+
     return (
-        <div className="space-y-6">
-            <PageHeader 
-                title="Payments &amp; Remittances" 
-                description="Track, manage, and post all payments from a central location." 
+        <div className="space-y-4">
+             <PageHeader 
+                title="Payment Posting" 
+                description="Post new payments or search existing ones." 
             />
-            
-            <Tabs defaultValue="history" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="history">Payment History</TabsTrigger>
-                    <TabsTrigger value="era">ERA Posting</TabsTrigger>
-                    <TabsTrigger value="manual">Manual EOB Posting</TabsTrigger>
-                </TabsList>
-                <TabsContent value="history" className="mt-4">
-                    <PaymentList />
-                </TabsContent>
-                <TabsContent value="era" className="mt-4">
-                    <EraPosting />
-                </TabsContent>
-                <TabsContent value="manual" className="mt-4">
-                    <ManualPosting />
-                </TabsContent>
-            </Tabs>
+            <div className="bg-card border rounded-lg p-4 space-y-4 text-sm">
+                {/* Top bar */}
+                <div className="flex flex-wrap items-center gap-4 border-b pb-3">
+                    <Label>Payment:</Label>
+                    <RadioGroup defaultValue="search" className="flex items-center gap-4" value={paymentOption} onValueChange={setPaymentOption}>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="new" id="new" />
+                            <Label htmlFor="new">New</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="search" id="search" />
+                            <Label htmlFor="search">Search</Label>
+                        </div>
+                    </RadioGroup>
+                    <div className="flex items-center gap-2">
+                        <Label>Patient</Label>
+                        <Input defaultValue="sam" className="w-32" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label>Pmt. Date From:</Label>
+                        <Input type="date" className="w-40" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label>To:</Label>
+                        <Input type="date" className="w-40" />
+                    </div>
+                    <Button variant="outline" size="sm">Search</Button>
+                    <Button variant="outline" size="sm">Close</Button>
+                </div>
+
+                {/* Payment Header */}
+                <div className="flex flex-wrap gap-4 border-b pb-3">
+                    <div className="flex-grow space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="flex items-center gap-2"><Label className="w-24">Legal Entity</Label><Select defaultValue="pediatrics"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="pediatrics">Pediatrics</SelectItem></SelectContent></Select></div>
+                            <div className="flex items-center gap-2"><Label className="w-20">Provider</Label><Select defaultValue="acme"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="acme">ACME Provider, ACME [Pediatrics]</SelectItem></SelectContent></Select></div>
+                            <div className="flex items-center gap-2"><Label className="w-16">Status</Label><Select defaultValue="new"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="new">NEW</SelectItem></SelectContent></Select></div>
+                             <div className="flex items-center gap-2"><Label className="w-16">PSTS#</Label><Input/></div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="flex items-center gap-2"><Label className="w-24">Acct. Date</Label><Input type="date" defaultValue="2024-06-06"/></div>
+                            <div className="flex items-center gap-2"><Label className="w-20">Entry Date</Label><Input type="date" defaultValue="2024-06-06"/></div>
+                            <div className="flex items-center gap-2"><Label className="w-16">Pmt. Date</Label><Input type="date" defaultValue="2024-06-06"/></div>
+                            <div className="flex items-center gap-2"><Label className="w-20">Collected by</Label><Select defaultValue="front-office"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="front-office">FRONT OFFICE</SelectItem></SelectContent></Select></div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="flex items-center gap-2"><Label className="w-24">Pmt. Type</Label><Select defaultValue="copay"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="copay">COPAY</SelectItem></SelectContent></Select></div>
+                            <div className="flex items-center gap-2"><Label className="w-20">Payor</Label><Select defaultValue="patient"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="patient">PATIENT</SelectItem></SelectContent></Select></div>
+                            <div className="flex items-center gap-2"><Label className="w-16">Code:</Label><Input value="sam, freddy" readOnly/></div>
+                            <div className="flex items-center gap-2"><Label className="w-20">Payer ID</Label><Input/></div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="flex items-center gap-2"><Label className="w-24">Method</Label><Select defaultValue="cash"><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="cash">CASH</SelectItem></SelectContent></Select></div>
+                            <div className="flex items-center gap-2"><Label className="w-20">Default Adj. Code</Label><Input defaultValue="ADJ SFS"/><Button size="icon" variant="outline"><ChevronsRight/></Button></div>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Card className="bg-muted p-2 w-full md:w-60">
+                             <div className="grid grid-cols-2 items-center">
+                                 <Label>Payment#</Label>
+                                 <Input className="text-right bg-white" value="6-15950" readOnly/>
+                                 <Label>Total Amt.:</Label>
+                                 <Input className="text-right" defaultValue="10.00"/>
+                                 <Label>Applied Amt.:</Label>
+                                 <Input className="text-right" value="0.00" readOnly/>
+                                 <Label>On Account Amt.:</Label>
+                                 <Input className="text-right" value="10.00" readOnly/>
+                             </div>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Search Encounter Lines */}
+                <Card className="p-3 bg-muted/50">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <Label>Search Encounter Lines</Label>
+                        <div className="flex items-center gap-2">
+                            <Label>Patient:</Label>
+                            <Input className="bg-white" value="sam, freddy Account($3667.68)" readOnly />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label>Claim #:</Label>
+                            <Input className="w-24" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label>DOS From:</Label>
+                            <Input type="date" className="w-32" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label>To:</Label>
+                            <Input type="date" className="w-32" />
+                        </div>
+                         <div className="flex items-center gap-2">
+                            <Checkbox id="show-closed"/>
+                            <Label htmlFor="show-closed">Show Closed Lines</Label>
+                        </div>
+                         <div className="flex items-center gap-2">
+                            <Checkbox id="show-all"/>
+                            <Label htmlFor="show-all">Show All Lines</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="auto-populate"/>
+                            <Label htmlFor="auto-populate">Auto Populate Paid Amount</Label>
+                        </div>
+                        <Button size="sm">Search</Button>
+                    </div>
+                </Card>
+
+                {/* Encounter Lines Table */}
+                <div className="overflow-x-auto border rounded-md">
+                     <Table className="text-xs whitespace-nowrap">
+                        <TableHeader>
+                            <TableRow className="bg-muted">
+                                <TableHead className="p-1">#</TableHead>
+                                <TableHead className="p-1">Proc. Code</TableHead>
+                                <TableHead className="p-1">R.Code</TableHead>
+                                <TableHead className="p-1">DOS From</TableHead>
+                                <TableHead className="p-1">DOS To</TableHead>
+                                <TableHead className="p-1">Claim#</TableHead>
+                                <TableHead className="p-1 text-right">Charge</TableHead>
+                                <TableHead className="p-1 text-right">Rem.</TableHead>
+                                <TableHead className="p-1 text-right">Co-Pay Amt.</TableHead>
+                                <TableHead className="p-1 text-right">Adj.</TableHead>
+                                <TableHead className="p-1">Reason</TableHead>
+                                <TableHead className="p-1 text-right">With Hold</TableHead>
+                                <TableHead className="p-1 text-right">Balance</TableHead>
+                                <TableHead className="p-1">Next Action?</TableHead>
+                                <TableHead className="p-1">Line Sub Status</TableHead>
+                                <TableHead className="p-1">Acct.Date</TableHead>
+                                <TableHead className="p-1">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Object.entries(groupedLines).map(([caseNum, lines]) => (
+                                <React.Fragment key={caseNum}>
+                                    <TableRow className="bg-muted/50 font-bold">
+                                        <TableCell className="p-1" colSpan={17}>Case #: {caseNum}</TableCell>
+                                    </TableRow>
+                                    {lines.map((line, index) => (
+                                        <TableRow key={line.id}>
+                                            <TableCell className="p-1">{index + 1}</TableCell>
+                                            <TableCell className="p-1">{line.procCode}</TableCell>
+                                            <TableCell className="p-1">{line.rCode}</TableCell>
+                                            <TableCell className="p-1">{line.dosFrom}</TableCell>
+                                            <TableCell className="p-1">{line.dosTo}</TableCell>
+                                            <TableCell className="p-1">{line.claimNum}</TableCell>
+                                            <TableCell className="p-1 text-right">{formatCurrency(line.charge)}</TableCell>
+                                            <TableCell className="p-1 text-right">{formatCurrency(line.rem)}</TableCell>
+                                            <TableCell className="p-0"><Input type="number" value={line.coPayAmt} onChange={e => handleLineChange(line.id, 'coPayAmt', e.target.value)} className="h-6 text-right"/></TableCell>
+                                            <TableCell className="p-1 text-right">{formatCurrency(line.adj)}</TableCell>
+                                            <TableCell className="p-1">{line.reason}</TableCell>
+                                            <TableCell className="p-1 text-right">{formatCurrency(line.withHold)}</TableCell>
+                                            <TableCell className="p-1 text-right">{formatCurrency(line.balance)}</TableCell>
+                                            <TableCell className="p-0"><Select value={line.nextAction} onValueChange={v => handleLineChange(line.id, 'nextAction', v)}><SelectTrigger className="h-6 text-xs w-32"/><SelectContent><SelectItem value="--Select--">--Select--</SelectItem><SelectItem value="ACCEPT_INSURANCE">ACCEPT_INSURANCE</SelectItem></SelectContent></Select></TableCell>
+                                            <TableCell className="p-0"><Select value={line.lineSubStatus} onValueChange={v => handleLineChange(line.id, 'lineSubStatus', v)}><SelectTrigger className="h-6 text-xs w-32"/><SelectContent><SelectItem value="--Select--">--Select--</SelectItem><SelectItem value="INS. OVER PAYMEN">INS. OVER PAYMEN</SelectItem></SelectContent></Select></TableCell>
+                                            <TableCell className="p-1">{line.acctDate} <Button variant="ghost" size="icon" className="h-5 w-5"><Calendar className="h-4 w-4"/></Button></TableCell>
+                                            <TableCell className="p-1">
+                                                <div className="flex">
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5"><RefreshCw className="h-3 w-3"/></Button>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5"><MessageSquare className="h-3 w-3"/></Button>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5"><Save className="h-3 w-3"/></Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </React.Fragment>
+                            ))}
+                             <TableRow className="bg-muted font-bold">
+                                <TableCell className="p-1 text-right" colSpan={6}>Total:</TableCell>
+                                <TableCell className="p-1 text-right">{formatCurrency(totals.charge)}</TableCell>
+                                <TableCell className="p-1 text-right">{formatCurrency(totals.rem)}</TableCell>
+                                <TableCell className="p-1 text-right">{formatCurrency(totals.coPayAmt)}</TableCell>
+                                <TableCell className="p-1 text-right">{formatCurrency(totals.adj)}</TableCell>
+                                <TableCell className="p-1" colSpan={1}></TableCell>
+                                <TableCell className="p-1 text-right">{formatCurrency(totals.withHold)}</TableCell>
+                                <TableCell className="p-1 text-right">{formatCurrency(totals.balance)}</TableCell>
+                                <TableCell className="p-1" colSpan={4}></TableCell>
+                            </TableRow>
+                        </TableBody>
+                     </Table>
+                </div>
+
+                {/* Footer */}
+                <div className="flex flex-wrap gap-4 pt-3 border-t">
+                    <div className="flex-grow space-y-2">
+                        <Tabs defaultValue="payer-remark" className="w-full">
+                            <TabsList>
+                                <TabsTrigger value="payer-remark">Payer Remark</TabsTrigger>
+                                <TabsTrigger value="line-activity">Line Activity</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="payer-remark" className="pt-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <Label>Category Code:</Label>
+                                        <Input/>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>EOB Page#</Label>
+                                        <Input/>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>Remark:</Label>
+                                        <Input/>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>Remark To Pat. Stmt.:</Label>
+                                        <Input/>
+                                    </div>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+                     <div className="flex items-end gap-2">
+                        <Button>Post</Button>
+                        <Button variant="outline">Reset</Button>
+                        <Button variant="destructive">Cancel</Button>
+                    </div>
+                </div>
+
+            </div>
         </div>
     )
 }
