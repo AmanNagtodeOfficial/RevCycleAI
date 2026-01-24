@@ -71,7 +71,7 @@ export default function PaymentsPage() {
                 action={
                     <div className="flex gap-2">
                         <Button variant="outline" asChild><Link href="/payments/era-posting"><Upload className="mr-2 h-4 w-4" /> Upload ERA</Link></Button>
-                        <Button><FileUp className="mr-2 h-4 w-4" /> Post Manual EOB</Button>
+                        <Button asChild><Link href="/payments/manual-posting"><FileUp className="mr-2 h-4 w-4" /> Post Manual EOB</Link></Button>
                     </div>
                 }
             />
