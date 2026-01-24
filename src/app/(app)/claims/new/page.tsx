@@ -193,18 +193,28 @@ export default function NewClaimPage() {
                <Input placeholder="C." />
                <Input placeholder="D." />
             </div>
-             <div className="space-y-2 pt-4">
-                <Label htmlFor="provider">Rendering Provider</Label>
-                 <Select required defaultValue="dr-reed">
-                    <SelectTrigger id="provider">
-                        <SelectValue placeholder="Select a provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="dr-reed">Dr. Evelyn Reed</SelectItem>
-                        <SelectItem value="dr-carter">Dr. Ben Carter</SelectItem>
-                        <SelectItem value="dr-khan">Dr. Samira Khan</SelectItem>
-                    </SelectContent>
-                </Select>
+             <div className="grid md:grid-cols-2 gap-6 pt-4">
+                <div className="space-y-2">
+                    <Label htmlFor="provider">Rendering Provider</Label>
+                    <Select required defaultValue="dr-reed">
+                        <SelectTrigger id="provider">
+                            <SelectValue placeholder="Select a provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="dr-reed">Dr. Evelyn Reed</SelectItem>
+                            <SelectItem value="dr-carter">Dr. Ben Carter</SelectItem>
+                            <SelectItem value="dr-khan">Dr. Samira Khan</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="referring-provider">Referring Provider Name (Optional)</Label>
+                    <Input id="referring-provider" placeholder="Dr. Alan Grant" />
+                </div>
+             </div>
+             <div className="pt-2 space-y-2">
+                <Label htmlFor="prior-auth">Prior Authorization Number (Optional)</Label>
+                <Input id="prior-auth" placeholder="e.g., AUTH123456789" />
             </div>
           </CardContent>
         </Card>
