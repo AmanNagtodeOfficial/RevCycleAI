@@ -26,14 +26,8 @@ type ServiceLine = {
   dateOfService: string;
   placeOfService: string;
   procedureCode: string;
-  modifier1: string;
-  modifier2: string;
-  modifier3: string;
-  modifier4: string;
-  diagPointer1: string;
-  diagPointer2: string;
-  diagPointer3: string;
-  diagPointer4: string;
+  modifiers: string[];
+  diagPointers: string[];
   units: string;
   charges: string;
 };
@@ -46,14 +40,8 @@ export default function NewClaimPage() {
       dateOfService: '2024-07-26',
       placeOfService: '11',
       procedureCode: '99214',
-      modifier1: '',
-      modifier2: '',
-      modifier3: '',
-      modifier4: '',
-      diagPointer1: 'A',
-      diagPointer2: '',
-      diagPointer3: '',
-      diagPointer4: '',
+      modifiers: ['', ''],
+      diagPointers: ['A', ''],
       units: '1',
       charges: '250.00',
     },
@@ -68,14 +56,8 @@ export default function NewClaimPage() {
         dateOfService: '',
         placeOfService: '',
         procedureCode: '',
-        modifier1: '',
-        modifier2: '',
-        modifier3: '',
-        modifier4: '',
-        diagPointer1: '',
-        diagPointer2: '',
-        diagPointer3: '',
-        diagPointer4: '',
+        modifiers: ['', ''],
+        diagPointers: ['', ''],
         units: '1',
         charges: '',
       },
@@ -88,7 +70,7 @@ export default function NewClaimPage() {
 
   const handleServiceLineChange = (
     id: number,
-    field: keyof Omit<ServiceLine, 'id'>,
+    field: keyof Omit<ServiceLine, 'id' | 'modifiers' | 'diagPointers'>,
     value: string
   ) => {
     setServiceLines(
@@ -97,6 +79,31 @@ export default function NewClaimPage() {
       )
     );
   };
+
+  const handleArrayFieldChange = (id: number, field: 'modifiers' | 'diagPointers', index: number, value: string) => {
+      setServiceLines(
+          serviceLines.map(line => {
+              if (line.id === id) {
+                  const newArray = [...line[field]];
+                  newArray[index] = value;
+                  return {...line, [field]: newArray};
+              }
+              return line;
+          })
+      )
+  }
+
+  const handleAddArrayField = (id: number, field: 'modifiers' | 'diagPointers') => {
+      setServiceLines(
+          serviceLines.map(line => {
+              if (line.id === id && line[field].length < 4) {
+                  const newArray = [...line[field], ''];
+                  return {...line, [field]: newArray};
+              }
+              return line;
+          })
+      )
+  }
 
   const totalCharges = serviceLines.reduce(
     (acc, line) => acc + (parseFloat(line.charges) || 0),
@@ -259,42 +266,35 @@ export default function NewClaimPage() {
                   <Label htmlFor={`cpt-${line.id}`} className="text-xs">Procedure (CPT)</Label>
                   <Input id={`cpt-${line.id}`} required placeholder="e.g. 99214" value={line.procedureCode} onChange={e => handleServiceLineChange(line.id, 'procedureCode', e.target.value)} />
                 </div>
-                <div className="grid grid-cols-4 gap-2 col-span-12 md:col-span-2">
-                    <div className="space-y-1">
-                        <Label htmlFor={`mod1-${line.id}`} className="text-xs">Mod 1</Label>
-                        <Input id={`mod1-${line.id}`} placeholder="25" value={line.modifier1} onChange={e => handleServiceLineChange(line.id, 'modifier1', e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor={`mod2-${line.id}`} className="text-xs">Mod 2</Label>
-                        <Input id={`mod2-${line.id}`} placeholder="59" value={line.modifier2} onChange={e => handleServiceLineChange(line.id, 'modifier2', e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor={`mod3-${line.id}`} className="text-xs">Mod 3</Label>
-                        <Input id={`mod3-${line.id}`} value={line.modifier3} onChange={e => handleServiceLineChange(line.id, 'modifier3', e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor={`mod4-${line.id}`} className="text-xs">Mod 4</Label>
-                        <Input id={`mod4-${line.id}`} value={line.modifier4} onChange={e => handleServiceLineChange(line.id, 'modifier4', e.target.value)} />
-                    </div>
+                
+                <div className="col-span-12 md:col-span-3 flex items-end gap-1">
+                    {line.modifiers.map((mod, modIndex) => (
+                        <div key={modIndex} className="space-y-1 flex-1">
+                            <Label htmlFor={`mod${modIndex}-${line.id}`} className="text-xs">Mod {modIndex + 1}</Label>
+                            <Input id={`mod${modIndex}-${line.id}`} value={mod} onChange={e => handleArrayFieldChange(line.id, 'modifiers', modIndex, e.target.value)} />
+                        </div>
+                    ))}
+                    {line.modifiers.length < 4 && (
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleAddArrayField(line.id, 'modifiers')}>
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
-                <div className="grid grid-cols-4 gap-2 col-span-12 md:col-span-2">
-                    <div className="space-y-1">
-                        <Label htmlFor={`diag1-${line.id}`} className="text-xs">Dx 1</Label>
-                        <Input id={`diag1-${line.id}`} required maxLength={1} value={line.diagPointer1} onChange={e => handleServiceLineChange(line.id, 'diagPointer1', e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor={`diag2-${line.id}`} className="text-xs">Dx 2</Label>
-                        <Input id={`diag2-${line.id}`} maxLength={1} value={line.diagPointer2} onChange={e => handleServiceLineChange(line.id, 'diagPointer2', e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor={`diag3-${line.id}`} className="text-xs">Dx 3</Label>
-                        <Input id={`diag3-${line.id}`} maxLength={1} value={line.diagPointer3} onChange={e => handleServiceLineChange(line.id, 'diagPointer3', e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor={`diag4-${line.id}`} className="text-xs">Dx 4</Label>
-                        <Input id={`diag4-${line.id}`} maxLength={1} value={line.diagPointer4} onChange={e => handleServiceLineChange(line.id, 'diagPointer4', e.target.value)} />
-                    </div>
+
+                <div className="col-span-12 md:col-span-3 flex items-end gap-1">
+                    {line.diagPointers.map((diag, diagIndex) => (
+                        <div key={diagIndex} className="space-y-1 flex-1">
+                            <Label htmlFor={`diag${diagIndex}-${line.id}`} className="text-xs">Dx {diagIndex + 1}</Label>
+                            <Input id={`diag${diagIndex}-${line.id}`} required={diagIndex === 0} maxLength={1} value={diag} onChange={e => handleArrayFieldChange(line.id, 'diagPointers', diagIndex, e.target.value)} />
+                        </div>
+                    ))}
+                    {line.diagPointers.length < 4 && (
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleAddArrayField(line.id, 'diagPointers')}>
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
+
                  <div className="col-span-4 md:col-span-1 space-y-1">
                   <Label htmlFor={`units-${line.id}`} className="text-xs">Units</Label>
                   <Input id={`units-${line.id}`} type="number" required value={line.units} onChange={e => handleServiceLineChange(line.id, 'units', e.target.value)} />
