@@ -12,54 +12,61 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, AlertCircle as AlertCircleIcon } from "lucide-react"
+import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, Banknote } from "lucide-react"
 import { Row } from "@tanstack/react-table"
+import { payments, Payment } from "@/lib/payments-data";
 
 function renderSubComponent({ row }: { row: Row<Claim> }) {
     const claim = row.original;
-
-    const getTimelineIcon = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid':
-            case 'submitted':
-                return <CheckCircle className="h-4 w-4 text-success" />;
-            case 'denied':
-                return <AlertCircleIcon className="h-4 w-4 text-destructive" />;
-            case 'pending':
-            case 'scrubbing':
-                return <Loader className="h-4 w-4 text-accent animate-spin" />;
-            default:
-                return <FileText className="h-4 w-4 text-muted-foreground" />;
-        }
-    }
-
-    if (!claim.history || claim.history.length === 0) {
-        return (
-            <div className="p-4 bg-muted/50 text-sm text-muted-foreground">
-                No history available for this claim.
-            </div>
-        )
-    }
+    const associatedPayments = payments.filter(p => p.claimId === claim.id);
+    const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
     return (
-        <div className="p-4 bg-muted/50">
-            <h4 className="font-semibold mb-4 text-sm">Claim History</h4>
-            <div className="relative pl-6">
-                <div className="absolute left-6 top-0 bottom-0 w-px bg-border -translate-x-1/2"></div>
-                <ul className="space-y-6">
-                {claim.history.map((event, index) => (
-                    <li key={index} className="flex items-start gap-4">
-                        <div className="absolute left-6 -translate-x-1/2 bg-background p-1 rounded-full border">
-                            {getTimelineIcon(event.status)}
-                        </div>
-                        <div className="flex-1 text-sm">
-                            <p className="font-medium">{event.status}</p>
-                            <p className="text-xs text-muted-foreground">by {event.user} on {event.date}</p>
-                        </div>
-                    </li>
-                ))}
-                </ul>
+        <div className="p-4 bg-muted/50 text-sm space-y-4">
+            <div className="flex justify-between items-center px-4">
+                <h4 className="font-semibold">Claim Details</h4>
+                <p><span className="text-muted-foreground">Claim ID:</span> <Link href={`/claims/${claim.id}`} className="font-medium text-primary hover:underline">{claim.id}</Link></p>
             </div>
+            
+            {associatedPayments.length > 0 ? (
+                associatedPayments.map(payment => {
+                    const allowedAmount = payment.amountPaid + payment.patientResponsibility;
+                    return (
+                        <div key={payment.id} className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 border rounded-lg bg-background mx-4">
+                            <div className="space-y-3">
+                                <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4"/> Payment from {payment.payerName}</h4>
+                                <p><span className="text-muted-foreground w-28 inline-block">Payment Date:</span> {payment.paymentDate}</p>
+                                <p><span className="text-muted-foreground w-28 inline-block">Payment Method:</span> {payment.paymentMethod}</p>
+                                {payment.checkNumber && <p><span className="text-muted-foreground w-28 inline-block">Check Number:</span> {payment.checkNumber}</p>}
+                            </div>
+                            <div className="space-y-3">
+                                <h4 className="font-semibold flex items-center gap-2"><Banknote className="h-4 w-4"/> Financial Summary</h4>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Billed Amount:</span> <span>{formatCurrency(payment.billedAmount)}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Allowed Amount:</span> <span>{formatCurrency(allowedAmount)}</span></div>
+                                <div className="flex justify-between font-medium"><span className="text-muted-foreground">Amount Paid:</span> <span>{formatCurrency(payment.amountPaid)}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Patient Responsibility:</span> <span>{formatCurrency(payment.patientResponsibility)}</span></div>
+                            </div>
+                            <div className="space-y-3">
+                                <h4 className="font-semibold">Adjustments</h4>
+                                {payment.adjustments.map((adj, i) => (
+                                    <div key={i} className="flex justify-between">
+                                        <div>
+                                            <span className="font-mono text-xs bg-background border rounded-sm px-1 py-0.5">{adj.reasonCode}</span>
+                                            <span className="ml-2">{adj.description}</span>
+                                        </div>
+                                        <span>{formatCurrency(adj.amount)}</span>
+                                    </div>
+                                ))}
+                                {!payment.adjustments.length && <p className='text-muted-foreground'>No adjustments for this payment.</p>}
+                            </div>
+                        </div>
+                    )
+                })
+            ) : (
+                 <div className="text-muted-foreground text-center py-4">
+                    No payment details available for this claim.
+                </div>
+            )}
         </div>
     )
 }

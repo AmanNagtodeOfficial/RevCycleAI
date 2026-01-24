@@ -37,9 +37,6 @@ export const columns: ColumnDef<Claim>[] = [
     id: 'expander',
     header: () => null,
     cell: ({ row }) => {
-      if (!row.original.history?.length) {
-        return <div className="w-8 h-8" />; // Keep alignment with other rows
-      }
       return (
         <Button
           variant="ghost"
@@ -53,9 +50,9 @@ export const columns: ColumnDef<Claim>[] = [
     },
   },
   {
-    accessorKey: "id",
-    header: "Claim ID",
-    cell: ({ row }) => <Link href={`/claims/${row.getValue("id")}`} className="font-medium text-primary hover:underline">{row.getValue("id")}</Link>,
+    accessorKey: "patientId",
+    header: "Patient ID",
+    cell: ({ row }) => <Link href={`/patients/${row.getValue("patientId")}`} className="font-medium text-primary hover:underline">{row.getValue("patientId") as string}</Link>,
   },
   {
     accessorKey: "patient",
