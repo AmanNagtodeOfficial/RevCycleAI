@@ -98,6 +98,16 @@ export default function NewInsurancePage() {
                 <Input id="ccfl" type="number" placeholder="e.g., 180" required />
               </div>
             </div>
+             <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="member-count">Member Count</Label>
+                    <Input id="member-count" type="number" placeholder="e.g., 1250" required defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="total-claims">Total Claims</Label>
+                    <Input id="total-claims" type="number" placeholder="e.g., 850" required defaultValue="0" />
+                </div>
+            </div>
           </CardContent>
            <CardFooter className="flex justify-end gap-2 pt-6">
                 <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
