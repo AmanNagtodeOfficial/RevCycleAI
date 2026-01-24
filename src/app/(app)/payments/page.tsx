@@ -70,7 +70,7 @@ export default function PaymentsPage() {
                 description="Track and manage all payments, including ERAs and manual EOBs." 
                 action={
                     <div className="flex gap-2">
-                        <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Upload ERA</Button>
+                        <Button variant="outline" asChild><Link href="/payments/era-posting"><Upload className="mr-2 h-4 w-4" /> Upload ERA</Link></Button>
                         <Button><FileUp className="mr-2 h-4 w-4" /> Post Manual EOB</Button>
                     </div>
                 }
