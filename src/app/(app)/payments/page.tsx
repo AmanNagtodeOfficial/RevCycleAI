@@ -11,8 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Clock, TrendingUp, FileCheck, FileText, Banknote } from "lucide-react";
+import { DollarSign, Clock, TrendingUp, FileCheck, FileText, Banknote, Upload, FileUp } from "lucide-react";
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 function renderSubComponent({ row }: { row: Row<Payment> }) {
     const payment = row.original;
@@ -64,7 +65,16 @@ export default function PaymentsPage() {
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Payments & Remittances" description="Track and manage all payments and remittances from payers." />
+            <PageHeader 
+                title="Payments & Remittances" 
+                description="Track and manage all payments, including ERAs and manual EOBs." 
+                action={
+                    <div className="flex gap-2">
+                        <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Upload ERA</Button>
+                        <Button><FileUp className="mr-2 h-4 w-4" /> Post Manual EOB</Button>
+                    </div>
+                }
+            />
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
