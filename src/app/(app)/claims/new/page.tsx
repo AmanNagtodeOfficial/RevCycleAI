@@ -28,6 +28,8 @@ type ServiceLine = {
   procedureCode: string;
   modifier1: string;
   modifier2: string;
+  modifier3: string;
+  modifier4: string;
   diagPointer: string;
   units: string;
   charges: string;
@@ -43,6 +45,8 @@ export default function NewClaimPage() {
       procedureCode: '99214',
       modifier1: '',
       modifier2: '',
+      modifier3: '',
+      modifier4: '',
       diagPointer: 'A',
       units: '1',
       charges: '250.00',
@@ -60,6 +64,8 @@ export default function NewClaimPage() {
         procedureCode: '',
         modifier1: '',
         modifier2: '',
+        modifier3: '',
+        modifier4: '',
         diagPointer: '',
         units: '1',
         charges: '',
@@ -187,11 +193,13 @@ export default function NewClaimPage() {
           </CardHeader>
           <CardContent className="space-y-4">
              <Label>Diagnosis Codes (ICD-10)</Label>
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-6 gap-4">
                <Input placeholder="A. (Primary)" required defaultValue="R05"/>
                <Input placeholder="B." />
                <Input placeholder="C." />
                <Input placeholder="D." />
+               <Input placeholder="E." />
+               <Input placeholder="F." />
             </div>
              <div className="grid md:grid-cols-2 gap-6 pt-4">
                 <div className="space-y-2">
@@ -238,11 +246,11 @@ export default function NewClaimPage() {
                   <Label htmlFor={`pos-${line.id}`} className="text-xs">POS</Label>
                   <Input id={`pos-${line.id}`} required placeholder="e.g. 11" value={line.placeOfService} onChange={e => handleServiceLineChange(line.id, 'placeOfService', e.target.value)} />
                 </div>
-                <div className="col-span-12 md:col-span-2 space-y-1">
+                <div className="col-span-12 md:col-span-1 space-y-1">
                   <Label htmlFor={`cpt-${line.id}`} className="text-xs">Procedure (CPT)</Label>
                   <Input id={`cpt-${line.id}`} required placeholder="e.g. 99214" value={line.procedureCode} onChange={e => handleServiceLineChange(line.id, 'procedureCode', e.target.value)} />
                 </div>
-                <div className="grid grid-cols-2 gap-2 col-span-6 md:col-span-2">
+                <div className="grid grid-cols-4 gap-2 col-span-12 md:col-span-3">
                     <div className="space-y-1">
                         <Label htmlFor={`mod1-${line.id}`} className="text-xs">Mod 1</Label>
                         <Input id={`mod1-${line.id}`} placeholder="25" value={line.modifier1} onChange={e => handleServiceLineChange(line.id, 'modifier1', e.target.value)} />
@@ -251,8 +259,16 @@ export default function NewClaimPage() {
                         <Label htmlFor={`mod2-${line.id}`} className="text-xs">Mod 2</Label>
                         <Input id={`mod2-${line.id}`} placeholder="59" value={line.modifier2} onChange={e => handleServiceLineChange(line.id, 'modifier2', e.target.value)} />
                     </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`mod3-${line.id}`} className="text-xs">Mod 3</Label>
+                        <Input id={`mod3-${line.id}`} value={line.modifier3} onChange={e => handleServiceLineChange(line.id, 'modifier3', e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`mod4-${line.id}`} className="text-xs">Mod 4</Label>
+                        <Input id={`mod4-${line.id}`} value={line.modifier4} onChange={e => handleServiceLineChange(line.id, 'modifier4', e.target.value)} />
+                    </div>
                 </div>
-                 <div className="col-span-6 md:col-span-1 space-y-1">
+                 <div className="col-span-4 md:col-span-1 space-y-1">
                   <Label htmlFor={`diag-${line.id}`} className="text-xs">Dx Ptr</Label>
                   <Input id={`diag-${line.id}`} required placeholder="e.g. A" value={line.diagPointer} onChange={e => handleServiceLineChange(line.id, 'diagPointer', e.target.value)} />
                 </div>
@@ -264,7 +280,7 @@ export default function NewClaimPage() {
                   <Label htmlFor={`charges-${line.id}`} className="text-xs">Charges ($)</Label>
                   <Input id={`charges-${line.id}`} type="number" required placeholder="150.00" value={line.charges} onChange={e => handleServiceLineChange(line.id, 'charges', e.target.value)} />
                 </div>
-                <div className="col-span-4 md:col-span-1 flex items-center">
+                <div className="col-span-12 md:col-span-1 flex items-center">
                     {serviceLines.length > 1 && (
                         <Button variant="ghost" size="icon" onClick={() => handleRemoveServiceLine(line.id)} className="text-destructive hover:text-destructive">
                             <Trash2 className="h-4 w-4" />
