@@ -15,6 +15,7 @@ import {
   useReactTable,
   getExpandedRowModel,
   Row,
+  ExpandedState,
 } from "@tanstack/react-table"
 
 import {
@@ -58,6 +59,7 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
+    const [expanded, setExpanded] = React.useState<ExpandedState>({})
 
 
   const table = useReactTable({
@@ -71,12 +73,14 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onExpandedChange: setExpanded,
     getExpandedRowModel: getExpandedRowModel(),
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      expanded,
     },
   })
 
