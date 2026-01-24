@@ -35,9 +35,13 @@ export const columns: ColumnDef<Payment>[] = [
     },
   },
   {
-    accessorKey: "claimId",
-    header: "Claim ID",
-    cell: ({ row }) => <Link href={`/claims/${row.getValue("claimId")}`} className="font-medium text-primary hover:underline">{row.getValue("claimId")}</Link>,
+    id: "patientId",
+    header: "Patient ID",
+    cell: ({ row }) => {
+        const claim = claims.find(c => c.id === row.original.claimId);
+        if (!claim) return 'N/A';
+        return <Link href={`/patients/${claim.patientId}`} className="font-medium text-primary hover:underline">{claim.patientId}</Link>;
+    }
   },
   {
     accessorKey: "patientName",
