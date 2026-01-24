@@ -2,9 +2,10 @@
 'use client'
 
 import React, { useState } from 'react';
-import { Row } from '@tanstack/react-table';
+import { Row, ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from "@/components/page-header";
 import { payments, Payment, PaymentAdjustment } from "@/lib/payments-data";
+import { claims, Claim } from "@/lib/data";
 import { columns } from "./columns";
 import { DataTable } from "@/components/data-table";
 import {
@@ -15,6 +16,7 @@ import {
   CardFooter,
   CardDescription,
 } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DollarSign, Clock, TrendingUp, FileCheck, FileText, Banknote, Upload, FileUp, PlusCircle, Trash2, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -225,15 +227,15 @@ const EraPosting = () => {
     );
 };
 
-// Component for the Manual EOB Posting tab
-const ManualPosting = () => {
+type AdjustmentLine = Omit<PaymentAdjustment, 'amount'> & {id: number, amount: string};
+
+const ManualPaymentForm = ({ claim, onFinished }: { claim: Claim, onFinished: () => void }) => {
     const [isPosting, setIsPosting] = useState(false);
-    const [adjustments, setAdjustments] = useState<Omit<PaymentAdjustment, 'amount'> & {id: number, amount: string}[]>([
-        { id: 1, reasonCode: 'CO-45', description: 'Contractual Obligation', amount: '250.00' },
+    const [adjustments, setAdjustments] = useState<AdjustmentLine[]>([
+        { id: 1, reasonCode: 'CO-45', description: 'Contractual Obligation', amount: '0.00' },
     ]);
-    const [billedAmount, setBilledAmount] = useState('1500.00');
-    const [paymentAmount, setPaymentAmount] = useState('1250.00');
-    const router = useRouter();
+    const [billedAmount, setBilledAmount] = useState(claim.amount.toString());
+    const [paymentAmount, setPaymentAmount] = useState('');
 
     const handleAddAdjustment = () => setAdjustments([...adjustments, { id: Date.now(), reasonCode: '', description: '', amount: '' }]);
     const handleRemoveAdjustment = (id: number) => setAdjustments(adjustments.filter((line) => line.id !== id));
@@ -249,23 +251,19 @@ const ManualPosting = () => {
         setIsPosting(true);
         setTimeout(() => {
             setIsPosting(false);
-            toast({ title: "Payment Posted Successfully", description: `A payment of $${paymentAmount} has been manually posted.` });
-            router.push('/payments');
+            toast({ title: "Payment Posted Successfully", description: `A payment of $${paymentAmount} has been manually posted for claim ${claim.id}.` });
+            onFinished();
         }, 1500);
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
                         <CardHeader><CardTitle>Payment Details</CardTitle><CardDescription>Enter the primary details from the remittance advice.</CardDescription></CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><Label htmlFor="claimId">Claim ID</Label><Input id="claimId" defaultValue="C20240715001" required /></div>
-                                <div className="space-y-2"><Label htmlFor="payer">Payer</Label><Select required defaultValue="aetna"><SelectTrigger id="payer"><SelectValue placeholder="Select a payer" /></SelectTrigger><SelectContent><SelectItem value="aetna">Aetna</SelectItem><SelectItem value="cigna">Cigna</SelectItem><SelectItem value="uhc">United Healthcare</SelectItem><SelectItem value="bcbs">BlueCross BlueShield</SelectItem><SelectItem value="humana">Humana</SelectItem></SelectContent></Select></div>
-                            </div>
-                            <div className="grid md:grid-cols-3 gap-6">
+                             <div className="grid md:grid-cols-3 gap-6">
                                 <div className="space-y-2"><Label htmlFor="paymentDate">Payment Date</Label><Input id="paymentDate" type="date" defaultValue={new Date().toISOString().substring(0, 10)} required /></div>
                                 <div className="space-y-2"><Label htmlFor="paymentMethod">Payment Method</Label><Select required defaultValue="check"><SelectTrigger id="paymentMethod"><SelectValue placeholder="Select method" /></SelectTrigger><SelectContent><SelectItem value="check">Check</SelectItem><SelectItem value="era">ERA/EFT</SelectItem><SelectItem value="creditcard">Credit Card</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select></div>
                                 <div className="space-y-2"><Label htmlFor="checkNumber">Check / Reference #</Label><Input id="checkNumber" placeholder="CHK12345" /></div>
@@ -292,7 +290,7 @@ const ManualPosting = () => {
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5"/> Financial Summary</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2"><Label htmlFor="billedAmount">Total Billed Amount</Label><Input id="billedAmount" type="number" step="0.01" required value={billedAmount} onChange={(e) => setBilledAmount(e.target.value)} /></div>
+                            <div className="space-y-2"><Label htmlFor="billedAmount">Total Billed Amount</Label><Input id="billedAmount" type="number" step="0.01" required value={billedAmount} onChange={(e) => setBilledAmount(e.target.value)} readOnly /></div>
                             <div className="space-y-2"><Label htmlFor="paymentAmount">Payer Payment Amount</Label><Input id="paymentAmount" type="number" step="0.01" required value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} /></div>
                         </CardContent>
                         <CardFooter className="flex-col items-start space-y-4 bg-muted/50 p-4 rounded-b-lg">
@@ -302,16 +300,83 @@ const ManualPosting = () => {
                     </Card>
                 </div>
             </div>
-            <div className="flex justify-end gap-2 pt-6">
-                <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
+             <DialogFooter className="pt-6">
+                <Button variant="outline" type="button" onClick={onFinished}>Cancel</Button>
                 <Button type="submit" disabled={isPosting}>
                     {isPosting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                     Post Payment
                 </Button>
-            </div>
+            </DialogFooter>
         </form>
     );
 };
+
+// Component for the Manual EOB Posting tab
+const ManualPosting = () => {
+    const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+
+    const manualPostingColumns: ColumnDef<Claim>[] = [
+        { 
+            accessorKey: "id", 
+            header: "Claim ID",
+            cell: ({row}) => <Link href={`/claims/${row.original.id}`} className="font-medium text-primary hover:underline">{row.original.id}</Link>
+        },
+        { accessorKey: "patient", header: "Patient" },
+        { accessorKey: "payer", header: "Payer" },
+        {
+            accessorKey: "amount",
+            header: () => <div className="text-right">Billed</div>,
+            cell: ({ row }) => <div className="text-right">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(row.getValue("amount"))}</div>
+        },
+        { accessorKey: "status", header: "Status" },
+        {
+            id: "actions",
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedClaim(row.original)}>
+                        Post Payment
+                    </Button>
+                </div>
+            ),
+        },
+    ];
+
+    const claimsToPost = claims.filter(c => c.status === 'Submitted' || c.status === 'Pending' || c.status === 'Denied');
+
+    return (
+         <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Manual Payment Workbench</CardTitle>
+                    <CardDescription>
+                        This workbench lists claims awaiting manual payment posting. Select a claim to enter payment details from its EOB.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DataTable 
+                        columns={manualPostingColumns} 
+                        data={claimsToPost} 
+                        filterColumn="patient"
+                        filterPlaceholder="Filter by patient or claim ID..."
+                    />
+                </CardContent>
+            </Card>
+
+            <Dialog open={!!selectedClaim} onOpenChange={(open) => !open && setSelectedClaim(null)}>
+                <DialogContent className="max-w-5xl">
+                    <DialogHeader>
+                        <DialogTitle>Post Payment for Claim {selectedClaim?.id}</DialogTitle>
+                        <DialogDescription>
+                            Enter payment details from the Explanation of Benefits (EOB) for patient {selectedClaim?.patient}. Billed amount: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(selectedClaim?.amount || 0)}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedClaim && <ManualPaymentForm claim={selectedClaim} onFinished={() => setSelectedClaim(null)} />}
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+};
+
 
 // Main Page Component
 export default function PaymentsPage() {
