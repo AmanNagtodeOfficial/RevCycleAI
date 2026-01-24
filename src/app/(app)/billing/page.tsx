@@ -2,22 +2,31 @@
 'use client'
 
 import { PageHeader } from "@/components/page-header";
-import { statements } from "@/lib/data";
+import { statements, claims, Claim } from "@/lib/data";
 import { columns } from "./columns";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, FileWarning, Mail, FileCheck, FileCog, Banknote, FileStack, FileText } from "lucide-react";
+import { DollarSign, FileWarning, Mail, FileCheck, Send, TestTube2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { payments, Payment } from "@/lib/payments-data";
-import { columns as paymentColumns } from "@/app/(app)/payments/columns";
 import { Row } from '@tanstack/react-table';
 import Link from "next/link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge";
 
 function renderSubComponent({ row }: { row: Row<Payment> }) {
     const payment = row.original;
@@ -28,13 +37,13 @@ function renderSubComponent({ row }: { row: Row<Payment> }) {
         <div className="p-4 bg-muted/50 text-sm">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-3">
-                    <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4"/> Claim & Payment Details</h4>
+                    <h4 className="font-semibold flex items-center gap-2">Claim & Payment Details</h4>
                     <p><span className="text-muted-foreground w-28 inline-block">Claim ID:</span> <Link href={`/claims/${payment.claimId}`} className="font-medium text-primary hover:underline">{payment.claimId}</Link></p>
                     <p><span className="text-muted-foreground w-28 inline-block">Payment Method:</span> {payment.paymentMethod}</p>
                     {payment.checkNumber && <p><span className="text-muted-foreground w-28 inline-block">Check Number:</span> {payment.checkNumber}</p>}
                 </div>
                 <div className="space-y-3">
-                    <h4 className="font-semibold flex items-center gap-2"><Banknote className="h-4 w-4"/> Financial Summary</h4>
+                    <h4 className="font-semibold flex items-center gap-2">Financial Summary</h4>
                     <div className="flex justify-between"><span className="text-muted-foreground">Billed Amount:</span> <span>{formatCurrency(payment.billedAmount)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Allowed Amount:</span> <span>{formatCurrency(allowedAmount)}</span></div>
                     <div className="flex justify-between font-medium"><span className="text-muted-foreground">Amount Paid:</span> <span>{formatCurrency(payment.amountPaid)}</span></div>
@@ -61,7 +70,6 @@ function renderSubComponent({ row }: { row: Row<Payment> }) {
 export default function BillingPage() {
 
     const data = statements;
-    const paymentsData = payments;
 
     const stats = {
         outstanding: data.filter(s => s.status === 'Sent' || s.status === 'Overdue').reduce((acc, s) => acc + s.amountDue, 0),
@@ -69,13 +77,15 @@ export default function BillingPage() {
         draft: data.filter(s => s.status === 'Draft').length,
         paidThisMonth: data.filter(s => s.status === 'Paid').length, // Simplified
     }
-
-    const insuranceStats = {
-        totalReceived: paymentsData.reduce((acc, p) => acc + p.amountPaid, 0),
-        eraReceived: paymentsData.filter(p => p.paymentMethod === 'ERA').length,
-        checksReceived: paymentsData.filter(p => p.paymentMethod === 'Check').length,
-        needsReconciliation: 4, // dummy data
-    }
+    
+    const claimsToBill = claims.filter(c => c.status === 'Scrubbing');
+    const claimsByPayer = claimsToBill.reduce((acc, claim) => {
+        if (!acc[claim.payer]) {
+            acc[claim.payer] = [];
+        }
+        acc[claim.payer].push(claim);
+        return acc;
+    }, {} as Record<string, Claim[]>);
 
 
     return (
@@ -141,56 +151,62 @@ export default function BillingPage() {
                 </TabsContent>
                 <TabsContent value="insurance" className="mt-4 space-y-6">
                      <div className="flex items-center justify-between">
-                         <h2 className="text-xl font-semibold tracking-tight">Insurance Remittances (EOB/ERA)</h2>
+                         <h2 className="text-xl font-semibold tracking-tight">Claim Submission Workbench</h2>
                          <div className="flex gap-2">
-                            <Button variant="outline">Upload ERA File</Button>
-                            <Button>Post Manual EOB</Button>
+                            <Button variant="outline"><TestTube2 className="mr-2 h-4 w-4" /> Send for Scrubbing</Button>
+                            <Button><Send className="mr-2 h-4 w-4" /> Send to Clearing House</Button>
                         </div>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Received</CardTitle>
-                                <Banknote className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(insuranceStats.totalReceived)}</div>
-                                <p className="text-xs text-muted-foreground">from insurance payers</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">ERAs Received</CardTitle>
-                                <FileStack className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{insuranceStats.eraReceived}</div>
-                                <p className="text-xs text-muted-foreground">Electronic Remittance Advices</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Checks Received</CardTitle>
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{insuranceStats.checksReceived}</div>
-                                 <p className="text-xs text-muted-foreground">Paper checks from payers</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Needs Reconciliation</CardTitle>
-                                <FileCog className="h-4 w-4 text-accent" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{insuranceStats.needsReconciliation}</div>
-                                <p className="text-xs text-muted-foreground">Payments to be posted</p>
-                            </CardContent>
-                        </Card>
-                    </div>
 
-                    <DataTable columns={paymentColumns} data={paymentsData} filterColumn="payerName" filterPlaceholder="Filter by payer..." renderSubComponent={renderSubComponent} />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Claims Ready for Submission</CardTitle>
+                            <CardDescription>
+                                These claims have passed initial checks and are ready for scrubbing or submission to the clearing house.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {Object.entries(claimsByPayer).length > 0 ? Object.entries(claimsByPayer).map(([payer, payerClaims]) => (
+                                <div key={payer} className="border rounded-lg p-4">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-semibold text-lg">{payer}</h3>
+                                        <div className="text-right">
+                                            <p className="font-semibold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(payerClaims.reduce((acc, claim) => acc + claim.amount, 0))}</p>
+                                            <p className="text-sm text-muted-foreground">{payerClaims.length} {payerClaims.length === 1 ? 'Claim' : 'Claims'}</p>
+                                        </div>
+                                    </div>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Claim ID</TableHead>
+                                                <TableHead>Patient</TableHead>
+                                                <TableHead>DOS</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">Amount</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {payerClaims.map(claim => (
+                                                <TableRow key={claim.id}>
+                                                    <TableCell>
+                                                        <Link href={`/claims/${claim.id}`} className="font-medium text-primary hover:underline">{claim.id}</Link>
+                                                    </TableCell>
+                                                    <TableCell>{claim.patient}</TableCell>
+                                                    <TableCell>{claim.dateOfService}</TableCell>
+                                                     <TableCell><Badge variant="outline" className="border-primary/50 text-primary">{claim.status}</Badge></TableCell>
+                                                    <TableCell className="text-right font-medium">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(claim.amount)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )) : (
+                                <div className="text-center py-10 text-muted-foreground">
+                                    No claims are currently in the scrubbing phase.
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>
