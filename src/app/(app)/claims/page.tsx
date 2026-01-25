@@ -29,6 +29,8 @@ import { cn } from '@/lib/utils';
 import type { Row } from '@tanstack/react-table';
 import type { Claim } from '@/lib/data';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 type PayerARSummary = {
     payerName: string;
@@ -192,17 +194,35 @@ function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect:
 }
 
 export default function ClaimsPage() {
+  const [activeTab, setActiveTab] = useState('all');
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 
   const handlePayerSelect = (payerName: string) => {
     setSelectedPayer(current => current === payerName ? null : payerName);
   };
 
-  const displayedClaims = useMemo(() => {
-    if (!selectedPayer) return claims;
-    return claims.filter(c => c.payer === selectedPayer);
-  }, [selectedPayer]);
+  const filteredClaims = useMemo(() => {
+    let claimsByStatus = claims;
+    switch(activeTab) {
+        case 'attention':
+            claimsByStatus = claims.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
+            break;
+        case 'in-process':
+            claimsByStatus = claims.filter(c => c.status === 'Pending' || c.status === 'Submitted');
+            break;
+        case 'paid':
+            claimsByStatus = claims.filter(c => c.status === 'Paid');
+            break;
+        case 'all':
+        default:
+            claimsByStatus = claims;
+            break;
+    }
 
+    if (!selectedPayer) return claimsByStatus;
+    return claimsByStatus.filter(c => c.payer === selectedPayer);
+  }, [activeTab, selectedPayer]);
+  
   const stats = {
       total: claims.length,
       paid: claims.filter(c => c.status === 'Paid').length,
@@ -242,7 +262,7 @@ export default function ClaimsPage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <CardTitle className="text-sm font-medium">In Process</CardTitle>
                 <Loader className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
@@ -251,7 +271,7 @@ export default function ClaimsPage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Denied</CardTitle>
+                <CardTitle className="text-sm font-medium">Attention Needed</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
@@ -259,25 +279,36 @@ export default function ClaimsPage() {
             </CardContent>
         </Card>
       </div>
-      <ARSummaryByInsurance 
-        selectedPayer={selectedPayer}
-        onPayerSelect={handlePayerSelect}
-      />
-      <div className="flex items-center justify-between mt-8">
-          <h2 className="text-2xl font-semibold tracking-tight">
-              {selectedPayer ? `Claims for ${selectedPayer}` : 'All Claims'}
-          </h2>
-          {selectedPayer && (
-              <Button variant="outline" onClick={() => setSelectedPayer(null)}>Show All Claims</Button>
-          )}
-      </div>
-      <DataTable 
-        columns={columns} 
-        data={displayedClaims} 
-        filterColumn="patient" 
-        filterPlaceholder="Filter by patient name..."
-        renderSubComponent={renderClaimSubComponent}
-      />
+
+       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList>
+                <TabsTrigger value="all">All Claims</TabsTrigger>
+                <TabsTrigger value="attention">Attention Needed</TabsTrigger>
+                <TabsTrigger value="in-process">In Process</TabsTrigger>
+                <TabsTrigger value="paid">Paid</TabsTrigger>
+            </TabsList>
+            <TabsContent value={activeTab} className="mt-4 space-y-6">
+                <ARSummaryByInsurance 
+                    selectedPayer={selectedPayer}
+                    onPayerSelect={handlePayerSelect}
+                />
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-semibold tracking-tight">
+                        {selectedPayer ? `Claims for ${selectedPayer}` : 'Claims List'}
+                    </h2>
+                    {selectedPayer && (
+                        <Button variant="outline" onClick={() => setSelectedPayer(null)}>Show All Payers</Button>
+                    )}
+                </div>
+                <DataTable 
+                    columns={columns} 
+                    data={filteredClaims} 
+                    filterColumn="patient" 
+                    filterPlaceholder="Filter by patient name..."
+                    renderSubComponent={renderClaimSubComponent}
+                />
+            </TabsContent>
+        </Tabs>
     </div>
   )
 }
