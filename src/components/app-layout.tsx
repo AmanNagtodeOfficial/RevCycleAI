@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -27,6 +28,7 @@ import {
   CreditCard,
   Receipt,
   Briefcase,
+  CalendarDays,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -44,6 +46,7 @@ import { useFirebaseApp } from '@/firebase';
 
 const menuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Appointments', href: '/appointments', icon: CalendarDays },
   { name: 'Claims', href: '/claims', icon: FileText },
   { name: 'Patients', href: '/patients', icon: Users },
   { name: 'Insurance', href: '/insurance', icon: Briefcase },

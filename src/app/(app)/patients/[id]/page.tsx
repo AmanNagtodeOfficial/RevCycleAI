@@ -2,7 +2,7 @@
 'use client';
 
 import { PageHeader } from "@/components/page-header";
-import { patients, claims, statements, appointments } from "@/lib/data";
+import { patients, claims, statements } from "@/lib/data";
 import { notFound } from "next/navigation";
 import {
   Card,
@@ -21,7 +21,6 @@ import {
 import { DataTable } from "@/components/data-table";
 import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
-import { appointmentsColumns } from "./appointments-columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Cake, VenetianMask, Phone, Mail, Shield, Home, Users, Briefcase } from "lucide-react";
@@ -39,7 +38,6 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
 
   const patientClaims = claims.filter(c => c.patientId === patient.id);
   const patientStatements = statements.filter(s => s.patientId === patient.id);
-  const patientAppointments = appointments.filter(a => a.patientId === patient.id);
 
   const totalBilled = patientClaims.reduce((acc, claim) => acc + claim.amount, 0);
   const outstandingBalance = patientStatements.filter(s => s.status === 'Sent' || s.status === 'Overdue').reduce((acc, s) => acc + s.amountDue, 0);
@@ -170,19 +168,15 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                 </CardContent>
             </Card>
             <Tabs defaultValue="claims" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="claims">Claims History</TabsTrigger>
                     <TabsTrigger value="billing">Billing & Statements</TabsTrigger>
-                    <TabsTrigger value="appointments">Appointments</TabsTrigger>
                 </TabsList>
                 <TabsContent value="claims" className="mt-4">
                     <DataTable columns={claimColumns} data={patientClaims} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
                 <TabsContent value="billing" className="mt-4">
                      <DataTable columns={statementColumns} data={patientStatements} filterColumn="status" filterPlaceholder="Filter by status..." />
-                </TabsContent>
-                <TabsContent value="appointments" className="mt-4">
-                     <DataTable columns={appointmentsColumns} data={patientAppointments} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
             </Tabs>
         </div>
