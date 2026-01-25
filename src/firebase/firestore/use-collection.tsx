@@ -14,8 +14,8 @@ export function useCollection<T extends DocumentData>(
 
   useEffect(() => {
     if (query === null) {
-      setData([]);
-      setIsLoading(false);
+      setData(null);
+      setIsLoading(true);
       return;
     }
     
