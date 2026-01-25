@@ -83,7 +83,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return name.substring(0, 2);
   }
 
-  if (practicesLoading) {
+  const bypassPracticeCheck = pathname === '/settings';
+
+  if (practicesLoading && !bypassPracticeCheck) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader className="h-8 w-8 animate-spin" />
@@ -92,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!selectedPractice) {
+  if (!selectedPractice && !bypassPracticeCheck) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md text-center">
@@ -172,25 +174,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                  <h1 className="text-xl font-semibold hidden md:block">Welcome back, {user?.displayName?.split(' ')[0] || 'Admin'}</h1>
             </div>
           <div className="flex items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2" disabled={practicesLoading}>
-                  {practicesLoading ? <Loader className="h-4 w-4 animate-spin" /> : <Building className="h-4 w-4 text-muted-foreground" />}
-                  <span className="hidden sm:inline">{selectedPractice.name}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Switch Practice</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={selectedPractice.id} onValueChange={(id) => setSelectedPractice(practices?.find(p => p.id === id)!)}>
-                  {practices?.map((practice) => (
-                    <DropdownMenuRadioItem key={practice.id} value={practice.id} className="cursor-pointer">
-                      {practice.name}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {selectedPractice && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2" disabled={practicesLoading}>
+                    {practicesLoading ? <Loader className="h-4 w-4 animate-spin" /> : <Building className="h-4 w-4 text-muted-foreground" />}
+                    <span className="hidden sm:inline">{selectedPractice.name}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Switch Practice</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup value={selectedPractice.id} onValueChange={(id) => setSelectedPractice(practices?.find(p => p.id === id)!)}>
+                    {practices?.map((practice) => (
+                      <DropdownMenuRadioItem key={practice.id} value={practice.id} className="cursor-pointer">
+                        {practice.name}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
