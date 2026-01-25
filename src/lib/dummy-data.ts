@@ -3,8 +3,7 @@ import { InsurancePlan } from './insurance-data';
 import { Payment } from './payments-data';
 
 export const practices: Practice[] = [
-    { id: 'practice-1', name: 'General Hospital' },
-    { id: 'practice-2', name: 'Pediatrics Clinic' },
+    { id: 'practice-test', name: 'Test Practice' },
 ];
 
 export const patients: Patient[] = [
@@ -30,7 +29,7 @@ export const patients: Patient[] = [
         secondaryInsuranceProvider: 'Cigna',
         secondaryInsuranceId: 'CIGNA654321',
         secondaryInsuranceGroup: 'GROUPSEC2',
-        practiceId: 'practice-1'
+        practiceId: 'practice-test'
     },
     {
         id: 'patient-2',
@@ -51,7 +50,7 @@ export const patients: Patient[] = [
         primaryInsuranceProvider: 'BlueCross BlueShield',
         primaryInsuranceId: 'BCBS987654',
         primaryInsuranceGroup: 'GROUP2',
-        practiceId: 'practice-1'
+        practiceId: 'practice-test'
     },
     {
         id: 'patient-3',
@@ -72,7 +71,7 @@ export const patients: Patient[] = [
         primaryInsuranceProvider: 'United Healthcare',
         primaryInsuranceId: 'UHC112233',
         primaryInsuranceGroup: 'GROUP3',
-        practiceId: 'practice-2'
+        practiceId: 'practice-test'
     },
     {
         id: 'patient-4',
@@ -93,46 +92,46 @@ export const patients: Patient[] = [
         primaryInsuranceProvider: 'Cigna',
         primaryInsuranceId: 'CIGNA445566',
         primaryInsuranceGroup: 'GROUP4',
-        practiceId: 'practice-2'
+        practiceId: 'practice-test'
     }
 ];
 
 export const appointments: (Omit<Appointment, 'patientName'>)[] = [
-    { id: 'appt-1', patientId: 'patient-1', date: '2024-07-25', time: '10:00', provider: 'Dr. Evelyn Reed', procedure: 'Annual Checkup', status: 'Scheduled', room: '101', practiceId: 'practice-1' },
-    { id: 'appt-2', patientId: 'patient-2', date: '2024-07-26', time: '14:30', provider: 'Dr. Ben Carter', procedure: 'Follow-up', status: 'Scheduled', room: '102', practiceId: 'practice-1' },
-    { id: 'appt-3', patientId: 'patient-3', date: '2024-07-15', time: '09:00', provider: 'Dr. Samira Khan', procedure: 'Vaccination', status: 'Checked Out', room: 'P1', practiceId: 'practice-2' },
-    { id: 'appt-4', patientId: 'patient-4', date: '2024-07-01', time: '11:00', provider: 'Dr. Samira Khan', procedure: 'Well-child visit', status: 'Checked Out', room: 'P2', practiceId: 'practice-2' },
+    { id: 'appt-1', patientId: 'patient-1', date: '2024-07-25', time: '10:00', provider: 'Dr. Evelyn Reed', procedure: 'Annual Checkup', status: 'Scheduled', room: '101', practiceId: 'practice-test' },
+    { id: 'appt-2', patientId: 'patient-2', date: '2024-07-26', time: '14:30', provider: 'Dr. Ben Carter', procedure: 'Follow-up', status: 'Scheduled', room: '102', practiceId: 'practice-test' },
+    { id: 'appt-3', patientId: 'patient-3', date: '2024-07-15', time: '09:00', provider: 'Dr. Samira Khan', procedure: 'Vaccination', status: 'Checked Out', room: 'P1', practiceId: 'practice-test' },
+    { id: 'appt-4', patientId: 'patient-4', date: '2024-07-01', time: '11:00', provider: 'Dr. Samira Khan', procedure: 'Well-child visit', status: 'Checked Out', room: 'P2', practiceId: 'practice-test' },
 ];
 
 export const claims: Omit<Claim, 'date' | 'dateOfService' | 'lastActivity'>[] & { date: string, dateOfService: string, lastActivity: string }[] = [
     {
         id: 'claim-1', patient: 'John Doe', patientId: 'patient-1', provider: 'Dr. Evelyn Reed', payer: 'Aetna', amount: 150, status: 'Pending', date: '2024-07-11', dateOfService: '2024-07-10', procedure: '99213 - Office Visit', diagnosis: 'R05 - Cough', lastActivity: '2024-07-11',
-        history: [{ status: 'Submitted', date: '2024-07-11', user: 'Admin' }], submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-1', riskScore: 15,
+        history: [{ status: 'Submitted', date: '2024-07-11', user: 'Admin' }], submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-test', riskScore: 15,
     },
     {
         id: 'claim-2', patient: 'Jane Smith', patientId: 'patient-2', provider: 'Dr. Ben Carter', payer: 'BlueCross BlueShield', amount: 450, status: 'Denied', date: '2024-07-01', dateOfService: '2024-06-25', denialReason: 'Medical Necessity', riskScore: 92, procedure: '99395 - Preventive Visit', diagnosis: 'Z00.129 - Well-Child Check', lastActivity: '2024-07-10',
         history: [{ status: 'Submitted', date: '2024-07-01', user: 'Admin' }, { status: 'Denied', date: '2024-07-10', user: 'System' }],
         aiSuggestions: [{ category: 'Coding', field: 'Diagnosis Code', suggestion: 'Diagnosis code Z00.129 may not be appropriate for an adult patient. Verify patient age and visit type.', actionType: 'Correct Code' }],
-        submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-1',
+        submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-test',
     },
     {
         id: 'claim-3', patient: 'Mike Johnson', patientId: 'patient-3', provider: 'Dr. Samira Khan', payer: 'United Healthcare', amount: 75, status: 'Paid', date: '2024-07-16', dateOfService: '2024-07-15', procedure: '90471 - Immunization admin', diagnosis: 'Z23 - Encounter for immunization', lastActivity: '2024-07-25',
         history: [{ status: 'Submitted', date: '2024-07-16', user: 'Admin' }, { status: 'Paid', date: '2024-07-25', user: 'System' }],
-        submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-2', riskScore: 5,
+        submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-test', riskScore: 5,
     },
     {
         id: 'claim-4', patient: 'Emily Williams', patientId: 'patient-4', provider: 'Dr. Samira Khan', payer: 'Cigna', amount: 250, status: 'Scrubbing', date: '2024-07-02', dateOfService: '2024-07-01', riskScore: 78, procedure: '99392 - Periodic reevaluation', diagnosis: 'Z00.121 - Routine child health examination', lastActivity: '2024-07-02',
         history: [{ status: 'Created', date: '2024-07-02', user: 'Admin' }, { status: 'Scrubbing', date: '2024-07-02', user: 'AI System' }],
         aiSuggestions: [{ category: 'Patient Info', field: 'Subscriber ID', suggestion: 'Subscriber ID format appears incorrect for Cigna. Please verify.', actionType: 'Verify Info' }],
-        submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-2',
+        submissionType: 'EMC', formType: 'CMS 1500', priority: 'Primary', claimCount: 1, practiceId: 'practice-test',
     }
 ];
 
 export const statements: Statement[] = [
-    { id: 'stmt-1', patientId: 'patient-1', patientName: 'John Doe', dateIssued: '2024-06-30', amountDue: 50.00, status: 'Overdue', practiceId: 'practice-1' },
-    { id: 'stmt-2', patientId: 'patient-2', patientName: 'Jane Smith', dateIssued: '2024-07-15', amountDue: 25.00, status: 'Sent', practiceId: 'practice-1' },
-    { id: 'stmt-3', patientId: 'patient-3', patientName: 'Mike Johnson', dateIssued: '2024-07-20', amountDue: 15.00, status: 'Paid', practiceId: 'practice-2' },
-    { id: 'stmt-4', patientId: 'patient-4', patientName: 'Emily Williams', dateIssued: '2024-07-25', amountDue: 0, status: 'Draft', practiceId: 'practice-2' }
+    { id: 'stmt-1', patientId: 'patient-1', patientName: 'John Doe', dateIssued: '2024-06-30', amountDue: 50.00, status: 'Overdue', practiceId: 'practice-test' },
+    { id: 'stmt-2', patientId: 'patient-2', patientName: 'Jane Smith', dateIssued: '2024-07-15', amountDue: 25.00, status: 'Sent', practiceId: 'practice-test' },
+    { id: 'stmt-3', patientId: 'patient-3', patientName: 'Mike Johnson', dateIssued: '2024-07-20', amountDue: 15.00, status: 'Paid', practiceId: 'practice-test' },
+    { id: 'stmt-4', patientId: 'patient-4', patientName: 'Emily Williams', dateIssued: '2024-07-25', amountDue: 0, status: 'Draft', practiceId: 'practice-test' }
 ];
 
 export const insurancePlans: InsurancePlan[] = [
@@ -164,9 +163,9 @@ export const payments: Payment[] = [
 ];
 
 export const recentActivity: Omit<RecentActivity, 'createdAt'>[] & { createdAt: string }[] = [
-    { id: 'activity-1', user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'submitted claim', target: 'claim-1', time: '2h ago', practiceId: 'practice-1', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-    { id: 'activity-2', user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'flagged claim for review', target: 'claim-2', time: '3h ago', practiceId: 'practice-1', createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() },
-    { id: 'activity-3', user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'updated patient info for', target: 'Jane Smith', time: '5h ago', practiceId: 'practice-1', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-    { id: 'activity-4', user: 'System', avatar: 'https://picsum.photos/seed/sys/40/40', action: 'received payment for claim', target: 'claim-3', time: '1d ago', practiceId: 'practice-2', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'activity-5', user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'identified scrubbing issue on', target: 'claim-4', time: '2d ago', practiceId: 'practice-2', createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
+    { id: 'activity-1', user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'submitted claim', target: 'claim-1', time: '2h ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { id: 'activity-2', user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'flagged claim for review', target: 'claim-2', time: '3h ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() },
+    { id: 'activity-3', user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'updated patient info for', target: 'Jane Smith', time: '5h ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+    { id: 'activity-4', user: 'System', avatar: 'https://picsum.photos/seed/sys/40/40', action: 'received payment for claim', target: 'claim-3', time: '1d ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'activity-5', user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'identified scrubbing issue on', target: 'claim-4', time: '2d ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
 ];
