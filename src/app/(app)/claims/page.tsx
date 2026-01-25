@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { claims } from "@/lib/data"
 import { PageHeader } from "@/components/page-header"
 import Link from "next/link"
@@ -12,7 +13,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
-import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader } from "lucide-react"
+import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -22,6 +23,12 @@ import {
     TableRow,
     TableFooter,
   } from "@/components/ui/table"
+import { DataTable } from '@/components/data-table';
+import { columns } from './columns';
+import { cn } from '@/lib/utils';
+import type { Row } from '@tanstack/react-table';
+import type { Claim } from '@/lib/data';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 type PayerARSummary = {
     payerName: string;
@@ -32,7 +39,43 @@ type PayerARSummary = {
     balance: number;
 };
 
-function ARSummaryByInsurance() {
+function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
+  const claim = row.original;
+
+  return (
+      <div className="p-4 bg-muted/50 text-sm space-y-4">
+          <div>
+            <h4 className="font-semibold mb-2">Service Details</h4>
+            <p><span className="text-muted-foreground w-28 inline-block">Procedure:</span> {claim.procedure}</p>
+            <p><span className="text-muted-foreground w-28 inline-block">Diagnosis:</span> {claim.diagnosis}</p>
+          </div>
+          {claim.aiSuggestions && claim.aiSuggestions.length > 0 && (
+              <div>
+                  <h4 className="font-semibold mb-2">AI Suggestions</h4>
+                   <div className="space-y-2">
+                      {claim.aiSuggestions.map((suggestion, index) => (
+                          <div key={index} className="text-xs p-2 border rounded-lg bg-background">
+                              <p className="font-semibold mb-1">{suggestion.suggestion}</p>
+                              <div className="flex items-center gap-4 text-muted-foreground">
+                                  <span className="flex items-center gap-1"><FileWarning className="h-3 w-3" /> {suggestion.category}: {suggestion.field}</span>
+                                  <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Action: {suggestion.actionType}</span>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          )}
+          {claim.denialReason && (
+               <Alert variant="destructive" className="max-w-md">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Denial Reason: {claim.denialReason}</AlertTitle>
+              </Alert>
+          )}
+      </div>
+  )
+}
+
+function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect: (payer: string) => void; selectedPayer: string | null; }) {
     const arSummaryData: PayerARSummary[] = useMemo(() => {
         const daysSince = (dateString: string): number => {
             const date = new Date(dateString);
@@ -86,8 +129,8 @@ function ARSummaryByInsurance() {
     }, [arSummaryData]);
     
     const formatCurrency = (amount: number) => {
-      if (amount === 0) return '0.00';
-      return new Intl.NumberFormat("en-US", {
+      if (amount === 0) return '$0.00';
+      return '$' + new Intl.NumberFormat("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(amount)
@@ -97,56 +140,74 @@ function ARSummaryByInsurance() {
         <Card>
             <CardHeader>
                 <CardTitle>A/R Activities</CardTitle>
-                <CardDescription>Main Summary by Insurance</CardDescription>
+                <CardDescription>Main Summary by Insurance. Click a row to filter claims below.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[250px]">Insurance</TableHead>
-                            <TableHead className="text-right">0-30</TableHead>
-                            <TableHead className="text-right">31-60</TableHead>
-                            <TableHead className="text-right">61-90</TableHead>
-                            <TableHead className="text-right">&gt; 90</TableHead>
-                            <TableHead className="text-right">Balance</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {arSummaryData.map((row) => (
-                            <TableRow key={row.payerName}>
-                                <TableCell className="font-medium">{row.payerName}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.age_0_30)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.age_31_60)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.age_61_90)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(row.age_over_90)}</TableCell>
-                                <TableCell className="text-right font-bold">{formatCurrency(row.balance)}</TableCell>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[250px] pl-4">Insurance</TableHead>
+                                <TableHead className="text-right">0-30</TableHead>
+                                <TableHead className="text-right">31-60</TableHead>
+                                <TableHead className="text-right">61-90</TableHead>
+                                <TableHead className="text-right">&gt; 90</TableHead>
+                                <TableHead className="text-right pr-4">Balance</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                    <TableFooter>
-                        <TableRow>
-                            <TableHead>Total</TableHead>
-                            <TableHead className="text-right">{formatCurrency(totals.age_0_30)}</TableHead>
-                            <TableHead className="text-right">{formatCurrency(totals.age_31_60)}</TableHead>
-                            <TableHead className="text-right">{formatCurrency(totals.age_61_90)}</TableHead>
-                            <TableHead className="text-right">{formatCurrency(totals.age_over_90)}</TableHead>
-                            <TableHead className="text-right font-bold">{formatCurrency(totals.balance)}</TableHead>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {arSummaryData.map((row) => (
+                                <TableRow 
+                                    key={row.payerName}
+                                    onClick={() => onPayerSelect(row.payerName)}
+                                    className={cn(
+                                        "cursor-pointer",
+                                        selectedPayer === row.payerName && "bg-accent/50 hover:bg-accent/60"
+                                    )}
+                                >
+                                    <TableCell className="font-medium pl-4">{row.payerName}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(row.age_0_30)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(row.age_31_60)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(row.age_61_90)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(row.age_over_90)}</TableCell>
+                                    <TableCell className="text-right font-bold pr-4">{formatCurrency(row.balance)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableHead className="pl-4">Total</TableHead>
+                                <TableHead className="text-right">{formatCurrency(totals.age_0_30)}</TableHead>
+                                <TableHead className="text-right">{formatCurrency(totals.age_31_60)}</TableHead>
+                                <TableHead className="text-right">{formatCurrency(totals.age_61_90)}</TableHead>
+                                <TableHead className="text-right">{formatCurrency(totals.age_over_90)}</TableHead>
+                                <TableHead className="text-right font-bold pr-4">{formatCurrency(totals.balance)}</TableHead>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );
 }
 
 export default function ClaimsPage() {
-  const data = claims;
+  const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
+
+  const handlePayerSelect = (payerName: string) => {
+    setSelectedPayer(current => current === payerName ? null : payerName);
+  };
+
+  const displayedClaims = useMemo(() => {
+    if (!selectedPayer) return claims;
+    return claims.filter(c => c.payer === selectedPayer);
+  }, [selectedPayer]);
 
   const stats = {
-      total: data.length,
-      paid: data.filter(c => c.status === 'Paid').length,
-      pending: data.filter(c => c.status === 'Pending' || c.status === 'Submitted' || c.status === 'Scrubbing').length,
-      denied: data.filter(c => c.status === 'Denied').length
+      total: claims.length,
+      paid: claims.filter(c => c.status === 'Paid').length,
+      pending: claims.filter(c => c.status === 'Pending' || c.status === 'Submitted' || c.status === 'Scrubbing').length,
+      denied: claims.filter(c => c.status === 'Denied').length
   }
 
   return (
@@ -198,7 +259,25 @@ export default function ClaimsPage() {
             </CardContent>
         </Card>
       </div>
-        <ARSummaryByInsurance />
+      <ARSummaryByInsurance 
+        selectedPayer={selectedPayer}
+        onPayerSelect={handlePayerSelect}
+      />
+      <div className="flex items-center justify-between mt-8">
+          <h2 className="text-2xl font-semibold tracking-tight">
+              {selectedPayer ? `Claims for ${selectedPayer}` : 'All Claims'}
+          </h2>
+          {selectedPayer && (
+              <Button variant="outline" onClick={() => setSelectedPayer(null)}>Show All Claims</Button>
+          )}
+      </div>
+      <DataTable 
+        columns={columns} 
+        data={displayedClaims} 
+        filterColumn="patient" 
+        filterPlaceholder="Filter by patient name..."
+        renderSubComponent={renderClaimSubComponent}
+      />
     </div>
   )
 }
