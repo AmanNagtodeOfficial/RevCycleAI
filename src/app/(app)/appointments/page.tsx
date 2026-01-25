@@ -7,6 +7,7 @@ import { DataTable } from "@/components/data-table"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { CalendarPlus } from "lucide-react"
+import Link from "next/link";
 
 export default function AppointmentsPage() {
   const data = appointments.map(appt => ({
@@ -20,7 +21,11 @@ export default function AppointmentsPage() {
         title="Appointments"
         description="Schedule, view, and manage all patient appointments."
         action={
-            <Button disabled><CalendarPlus className="mr-2 h-4 w-4" /> Schedule Appointment</Button>
+            <Button asChild>
+                <Link href="/appointments/new">
+                    <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Appointment
+                </Link>
+            </Button>
         }
       />
       <DataTable columns={columns} data={data} filterColumn="patientName" filterPlaceholder="Filter by patient name..."/>
