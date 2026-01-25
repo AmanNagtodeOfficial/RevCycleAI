@@ -16,9 +16,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader, User, Users, Briefcase, Phone, Checkbox, Wand2, UploadCloud } from 'lucide-react';
+import { Loader, User, Users, Briefcase, Phone, Wand2, UploadCloud } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { autoFillPatientData } from '@/ai/flows/auto-fill-patient-data';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type PatientFormData = {
     patientName: string;
