@@ -17,9 +17,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useUser } from '@/firebase';
-import { getAuth, updateProfile } from 'firebase/auth';
-import { useFirebaseApp } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
+import { updateProfile } from 'firebase/auth';
 import { toast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -32,37 +31,35 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export default function SettingsPage() {
   const { user } = useUser();
-  const app = useFirebaseApp();
-  const auth = getAuth(app);
+  const auth = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      displayName: user?.displayName || '',
+      displayName: '',
     },
     mode: 'onChange',
   });
 
   useEffect(() => {
-    if (user?.displayName) {
-      form.reset({ displayName: user.displayName });
+    if (user) {
+      form.reset({ displayName: user.displayName || '' });
     }
   }, [user, form]);
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!user) return;
+    if (!auth.currentUser) return;
     
     setIsSaving(true);
     try {
-      await updateProfile(user, {
+      await updateProfile(auth.currentUser, {
         displayName: data.displayName,
       });
       toast({
         title: 'Profile Updated',
         description: 'Your display name has been successfully updated.',
       });
-      window.location.reload();
     } catch (error: any) {
       toast({
         title: 'Error updating profile',
@@ -112,7 +109,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
-                    <Button type="submit" disabled={isSaving}>
+                    <Button type="submit" disabled={isSaving || !form.formState.isDirty}>
                         {isSaving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes
                     </Button>
