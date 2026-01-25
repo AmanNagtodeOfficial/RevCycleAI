@@ -5,6 +5,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader } from 'lucide-react';
+import { PracticeProvider } from '@/context/practice-context';
 
 export default function MainAppLayout({
   children,
@@ -32,5 +33,9 @@ export default function MainAppLayout({
       return null;
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <PracticeProvider>
+      <AppLayout>{children}</AppLayout>
+    </PracticeProvider>
+  );
 }

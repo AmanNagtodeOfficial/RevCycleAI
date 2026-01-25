@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import type { Row } from '@tanstack/react-table';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePractice } from '@/context/practice-context';
 
 
 type PayerARSummary = {
@@ -201,38 +202,41 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
 }
 
 export default function ClaimsPage() {
+  const { selectedPractice } = usePractice();
   const [activeTab, setActiveTab] = useState('all');
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 
   const handlePayerSelect = (payerName: string) => {
     setSelectedPayer(current => current === payerName ? null : payerName);
   };
+  
+  const practiceClaims = useMemo(() => claims.filter(c => c.practiceId === selectedPractice.id), [selectedPractice]);
 
   const claimsForTab = useMemo(() => {
     switch(activeTab) {
         case 'attention':
-            return claims.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
+            return practiceClaims.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
         case 'in-process':
-            return claims.filter(c => c.status === 'Pending' || c.status === 'Submitted');
+            return practiceClaims.filter(c => c.status === 'Pending' || c.status === 'Submitted');
         case 'paid':
-            return claims.filter(c => c.status === 'Paid');
+            return practiceClaims.filter(c => c.status === 'Paid');
         case 'all':
         default:
-            return claims;
+            return practiceClaims;
     }
-  }, [activeTab]);
+  }, [activeTab, practiceClaims]);
 
   const filteredClaims = useMemo(() => {
     if (!selectedPayer) return claimsForTab;
     return claimsForTab.filter(c => c.payer === selectedPayer);
   }, [claimsForTab, selectedPayer]);
   
-  const stats = {
-      total: claims.length,
-      paid: claims.filter(c => c.status === 'Paid').length,
-      pending: claims.filter(c => c.status === 'Pending' || c.status === 'Submitted' || c.status === 'Scrubbing').length,
-      denied: claims.filter(c => c.status === 'Denied').length
-  }
+  const stats = useMemo(() => ({
+      total: practiceClaims.length,
+      paid: practiceClaims.filter(c => c.status === 'Paid').length,
+      pending: practiceClaims.filter(c => c.status === 'Pending' || c.status === 'Submitted' || c.status === 'Scrubbing').length,
+      denied: practiceClaims.filter(c => c.status === 'Denied').length
+  }), [practiceClaims]);
 
   return (
     <div className="space-y-6">

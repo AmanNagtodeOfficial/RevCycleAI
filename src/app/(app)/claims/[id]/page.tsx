@@ -74,7 +74,7 @@ export default function ClaimDetailPage({ params }: { params: { id: string } }) 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div className="flex items-center gap-2">
                            <User className="w-4 h-4 text-muted-foreground" />
-                           <div><span className="font-medium">Patient:</span> {claim.patient}</div>
+                           <div><span className="font-medium">Patient:</span> <Link href={`/patients/${claim.patientId}`} className="text-primary hover:underline">{claim.patient}</Link></div>
                         </div>
                         <div className="flex items-center gap-2">
                            <Briefcase className="w-4 h-4 text-muted-foreground" />

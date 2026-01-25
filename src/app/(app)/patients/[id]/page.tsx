@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from 'react';
 import { PageHeader } from "@/components/page-header";
 import { patients, claims, statements } from "@/lib/data";
 import { notFound } from "next/navigation";
@@ -28,9 +29,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
 import { Separator } from "@/components/ui/separator";
+import { usePractice } from '@/context/practice-context';
 
 export default function PatientDetailPage({ params }: { params: { id: string } }) {
-  const patient = patients.find(p => p.id === params.id);
+  const { selectedPractice } = usePractice();
+  const patient = patients.find(p => p.id === params.id && p.practiceId === selectedPractice.id);
 
   if (!patient) {
     notFound();

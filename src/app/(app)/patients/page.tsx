@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from "react";
 import { patients } from "@/lib/data"
 import { columns } from "./columns"
 import { DataTable } from "@/components/data-table"
@@ -14,15 +15,18 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Users, UserPlus, UserCheck, UserX } from "lucide-react"
+import { usePractice } from "@/context/practice-context";
 
 export default function PatientsPage() {
-  const data = patients;
+  const { selectedPractice } = usePractice();
+  
+  const data = React.useMemo(() => patients.filter(p => p.practiceId === selectedPractice.id), [selectedPractice]);
 
-  const stats = {
+  const stats = React.useMemo(() => ({
       total: data.length,
       active: data.filter(p => p.status === 'Active').length,
       inactive: data.filter(p => p.status === 'Inactive').length,
-  }
+  }), [data]);
 
   return (
     <div className="space-y-6">

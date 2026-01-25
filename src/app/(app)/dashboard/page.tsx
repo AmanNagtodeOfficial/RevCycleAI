@@ -1,6 +1,7 @@
 
 'use client'
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, FileText, Percent, TrendingUp, CheckCircle, XCircle, Activity } from 'lucide-react';
@@ -18,15 +19,7 @@ import { PageHeader } from '@/components/page-header';
 import { claims } from '@/lib/data';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
-const kpiData = [
-  { title: 'Net Collections', value: '$1.2M', change: '+12.5%', Icon: DollarSign, changeType: 'positive' },
-  { title: 'Clean Claim Rate', value: '96.2%', change: '+1.5%', Icon: CheckCircle, changeType: 'positive' },
-  { title: 'Denial Rate', value: '3.4%', change: '-2.1%', Icon: XCircle, changeType: 'negative' },
-  { title: 'Days in A/R', value: '28', change: '-3 days', Icon: FileText, changeType: 'positive' },
-];
-
-const atRiskClaims = claims.filter(c => c.riskScore && c.riskScore > 60).sort((a,b) => (b.riskScore || 0) - (a.riskScore || 0)).slice(0, 5);
+import { usePractice } from '@/context/practice-context';
 
 const revenueData = [
     { month: 'Jan', revenue: 100, forecast: 90 },
@@ -39,14 +32,43 @@ const revenueData = [
 ]
 
 const recentActivity = [
-    { id: 1, user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'submitted claim', target: 'C20240715001', time: '2h ago' },
-    { id: 2, user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'flagged claim for review', target: 'C20240714002', time: '3h ago' },
-    { id: 3, user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'updated patient info for', target: 'Seraphina Moon', time: '5h ago' },
-    { id: 4, user: 'System', avatar: 'https://picsum.photos/seed/sys/40/40', action: 'received payment for claim', target: 'C20240709005', time: '1d ago' },
-    { id: 5, user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'identified scrubbing issue on', target: 'C20240710004', time: '2d ago' },
+    { id: 1, user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'submitted claim', target: 'C20240715001', time: '2h ago', practiceId: 'practice-1' },
+    { id: 2, user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'flagged claim for review', target: 'C20240714002', time: '3h ago', practiceId: 'practice-1' },
+    { id: 3, user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'updated patient info for', target: 'Seraphina Moon', time: '5h ago', practiceId: 'practice-1' },
+    { id: 4, user: 'System', avatar: 'https://picsum.photos/seed/sys/40/40', action: 'received payment for claim', target: 'C20240709005', time: '1d ago', practiceId: 'practice-2' },
+    { id: 5, user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'identified scrubbing issue on', target: 'C20240710004', time: '2d ago', practiceId: 'practice-2' },
 ]
 
 export default function DashboardPage() {
+  const { selectedPractice } = usePractice();
+  
+  const practiceClaims = React.useMemo(() => claims.filter(c => c.practiceId === selectedPractice.id), [selectedPractice]);
+
+  const kpiData = React.useMemo(() => {
+    const totalCollections = practiceClaims.filter(c => c.status === 'Paid').reduce((sum, c) => sum + c.amount, 0);
+    const cleanClaims = practiceClaims.filter(c => c.riskScore && c.riskScore <= 20).length;
+    const cleanClaimRate = practiceClaims.length > 0 ? (cleanClaims / practiceClaims.length) * 100 : 0;
+    const deniedClaims = practiceClaims.filter(c => c.status === 'Denied').length;
+    const denialRate = practiceClaims.length > 0 ? (deniedClaims / practiceClaims.length) * 100 : 0;
+    
+    // Simplified Days in A/R calculation
+    const outstandingClaims = practiceClaims.filter(c => c.status !== 'Paid');
+    const totalOutstandingAmount = outstandingClaims.reduce((sum, c) => sum + c.amount, 0);
+    const avgDailyCharges = practiceClaims.reduce((sum, c) => sum + c.amount, 0) / 30;
+    const daysInAR = avgDailyCharges > 0 ? totalOutstandingAmount / avgDailyCharges : 0;
+
+    return [
+      { title: 'Net Collections', value: `$${(totalCollections / 1000).toFixed(0)}K`, change: '+12.5%', Icon: DollarSign, changeType: 'positive' },
+      { title: 'Clean Claim Rate', value: `${cleanClaimRate.toFixed(1)}%`, change: '+1.5%', Icon: CheckCircle, changeType: 'positive' },
+      { title: 'Denial Rate', value: `${denialRate.toFixed(1)}%`, change: '-2.1%', Icon: XCircle, changeType: 'negative' },
+      { title: 'Days in A/R', value: `${daysInAR.toFixed(0)}`, change: '-3 days', Icon: FileText, changeType: 'positive' },
+    ];
+  }, [practiceClaims]);
+
+  const atRiskClaims = React.useMemo(() => practiceClaims.filter(c => c.riskScore && c.riskScore > 60).sort((a,b) => (b.riskScore || 0) - (a.riskScore || 0)).slice(0, 5), [practiceClaims]);
+  
+  const practiceActivity = React.useMemo(() => recentActivity.filter(a => a.practiceId === selectedPractice.id), [selectedPractice]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -114,11 +136,11 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest updates across your organization.</CardDescription>
+                <CardDescription>Latest updates for {selectedPractice.name}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {recentActivity.map(activity => (
+                    {practiceActivity.map(activity => (
                         <div key={activity.id} className="flex items-start gap-3">
                             <Avatar className="h-8 w-8 border">
                                 <AvatarImage src={activity.avatar} />
@@ -172,6 +194,11 @@ export default function DashboardPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                 {atRiskClaims.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center h-24">No at-risk claims for this practice.</TableCell>
+                    </TableRow>
+                 )}
               </TableBody>
             </Table>
           </CardContent>

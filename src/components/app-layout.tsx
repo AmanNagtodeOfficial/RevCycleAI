@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -31,7 +31,6 @@ import {
   Briefcase,
   CalendarDays,
   Building,
-  Check,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -48,7 +47,8 @@ import {
 import { useUser } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
-import { practices, Practice } from '@/lib/data';
+import { practices } from '@/lib/data';
+import { usePractice } from '@/context/practice-context';
 
 const menuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -67,7 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const app = useFirebaseApp();
   const auth = getAuth(app);
-  const [selectedPractice, setSelectedPractice] = useState<Practice>(practices[0]);
+  const { selectedPractice, setSelectedPractice } = usePractice();
 
   const handleLogout = () => {
     auth.signOut();
@@ -171,9 +171,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

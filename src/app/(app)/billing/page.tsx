@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { usePractice } from '@/context/practice-context';
 
 function renderSubComponent({ row }: { row: Row<Payment> }) {
     const payment = row.original;
@@ -74,11 +75,16 @@ function renderSubComponent({ row }: { row: Row<Payment> }) {
 }
 
 function InsuranceBillingWorkbench() {
-    const [data] = React.useState(() => [...claims]);
+    const { selectedPractice } = usePractice();
+    const [data, setData] = React.useState(() => claims.filter(c => c.practiceId === selectedPractice.id));
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+    React.useEffect(() => {
+        setData(claims.filter(c => c.practiceId === selectedPractice.id));
+    }, [selectedPractice]);
 
     const table = useReactTable({
         data,
@@ -215,15 +221,16 @@ function InsuranceBillingWorkbench() {
 }
 
 export default function BillingPage() {
+    const { selectedPractice } = usePractice();
+    
+    const data = React.useMemo(() => statements.filter(s => s.practiceId === selectedPractice.id), [selectedPractice]);
 
-    const data = statements;
-
-    const stats = {
+    const stats = React.useMemo(() => ({
         outstanding: data.filter(s => s.status === 'Sent' || s.status === 'Overdue').reduce((acc, s) => acc + s.amountDue, 0),
         overdue: data.filter(s => s.status === 'Overdue').length,
         draft: data.filter(s => s.status === 'Draft').length,
         paidThisMonth: data.filter(s => s.status === 'Paid').length, // Simplified
-    }
+    }), [data]);
     
 
     return (

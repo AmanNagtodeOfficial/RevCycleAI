@@ -26,6 +26,7 @@ export type Claim = {
   formType: 'CMS 1500' | 'UB04';
   priority: 'Primary' | 'Secondary' | 'Tertiary' | 'Non-Primary';
   claimCount: number;
+  practiceId: string;
 };
 
 export type Patient = {
@@ -58,6 +59,8 @@ export type Patient = {
   secondaryInsuranceProvider?: string;
   secondaryInsuranceId?: string;
   secondaryInsuranceGroup?: string;
+
+  practiceId: string;
 };
 
 export type Statement = {
@@ -67,6 +70,7 @@ export type Statement = {
   dateIssued: string;
   amountDue: number;
   status: "Paid" | "Sent" | "Overdue" | "Draft";
+  practiceId: string;
 };
 
 export type Practice = {
@@ -103,6 +107,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Primary',
     claimCount: 1,
+    practiceId: 'practice-1',
   },
   {
     id: "C20240714002",
@@ -141,6 +146,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Primary',
     claimCount: 1,
+    practiceId: 'practice-1',
   },
   {
     id: "C20240712003",
@@ -164,6 +170,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Primary',
     claimCount: 2,
+    practiceId: 'practice-1',
   },
   {
     id: "C20240710004",
@@ -195,6 +202,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Secondary',
     claimCount: 1,
+    practiceId: 'practice-2',
   },
   {
     id: "C20240709005",
@@ -218,6 +226,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Primary',
     claimCount: 3,
+    practiceId: 'practice-2',
   },
    {
     id: "C20240708006",
@@ -241,6 +250,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Primary',
     claimCount: 1,
+    practiceId: 'practice-2',
   },
   {
     id: "C20240705007",
@@ -265,6 +275,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Primary',
     claimCount: 1,
+    practiceId: 'practice-3',
   },
   {
     id: "C20240701008",
@@ -288,6 +299,7 @@ export const claims: Claim[] = [
     formType: 'CMS 1500',
     priority: 'Tertiary',
     claimCount: 2,
+    practiceId: 'practice-3',
   },
 ];
 
@@ -314,6 +326,7 @@ export const patients: Patient[] = [
     secondaryInsuranceProvider: "Cigna",
     secondaryInsuranceId: "CIG-SEC-987",
     secondaryInsuranceGroup: "GRP-SEC-ABC",
+    practiceId: 'practice-1',
   },
   {
     id: "P002",
@@ -334,6 +347,7 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "Cigna",
     primaryInsuranceId: "CIG987654321",
     primaryInsuranceGroup: "GRP-QWE3",
+    practiceId: 'practice-1',
   },
   {
     id: "P003",
@@ -354,6 +368,7 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "United Healthcare",
     primaryInsuranceId: "UHC246813579",
     primaryInsuranceGroup: "GRP-RTY4",
+    practiceId: 'practice-1',
   },
   {
     id: "P004",
@@ -374,6 +389,7 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "BlueCross BlueShield",
     primaryInsuranceId: "BCBS135792468",
     primaryInsuranceGroup: "GRP-UIO5",
+    practiceId: 'practice-2',
   },
   {
     id: "P005",
@@ -394,6 +410,7 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "Humana",
     primaryInsuranceId: "HUM555444333",
     primaryInsuranceGroup: "GRP-PAS6",
+    practiceId: 'practice-2',
   },
   {
     id: "P006",
@@ -414,6 +431,7 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "Aetna",
     primaryInsuranceId: "AET998877665",
     primaryInsuranceGroup: "GRP-DFG7",
+    practiceId: 'practice-2',
   },
   {
     id: "P007",
@@ -434,6 +452,7 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "Cigna",
     primaryInsuranceId: "CIG112233445",
     primaryInsuranceGroup: "GRP-HJK8",
+    practiceId: 'practice-3',
   },
   {
     id: "P008",
@@ -454,18 +473,19 @@ export const patients: Patient[] = [
     primaryInsuranceProvider: "United Healthcare",
     primaryInsuranceId: "UHC777888999",
     primaryInsuranceGroup: "GRP-LKM9",
+    practiceId: 'practice-3',
   },
 ];
 
 
 export const statements: Statement[] = [
-    { id: 'STMT-001', patientId: 'P001', patientName: 'Eleanor Vance', dateIssued: '2024-07-20', amountDue: 50.00, status: 'Paid' },
-    { id: 'STMT-002', patientId: 'P002', patientName: 'Marcus Thorne', dateIssued: '2024-07-21', amountDue: 150.00, status: 'Overdue' },
-    { id: 'STMT-003', patientId: 'P003', patientName: 'Seraphina Moon', dateIssued: '2024-07-22', amountDue: 75.50, status: 'Sent' },
-    { id: 'STMT-004', patientId: 'P004', patientName: 'Julian Croft', dateIssued: '2024-07-23', amountDue: 25.00, status: 'Paid' },
-    { id: 'STMT-005', patientId: 'P006', patientName: "Liam O'Connell", dateIssued: '2024-07-24', amountDue: 200.00, status: 'Sent' },
-    { id: 'STMT-006', patientId: 'P007', patientName: 'Sophia Rodriguez', dateIssued: '2024-07-25', amountDue: 300.00, status: 'Draft' },
-    { id: 'STMT-007', patientId: 'P008', patientName: 'Kenji Tanaka', dateIssued: '2024-07-26', amountDue: 120.00, status: 'Overdue' },
+    { id: 'STMT-001', patientId: 'P001', patientName: 'Eleanor Vance', dateIssued: '2024-07-20', amountDue: 50.00, status: 'Paid', practiceId: 'practice-1' },
+    { id: 'STMT-002', patientId: 'P002', patientName: 'Marcus Thorne', dateIssued: '2024-07-21', amountDue: 150.00, status: 'Overdue', practiceId: 'practice-1' },
+    { id: 'STMT-003', patientId: 'P003', patientName: 'Seraphina Moon', dateIssued: '2024-07-22', amountDue: 75.50, status: 'Sent', practiceId: 'practice-1' },
+    { id: 'STMT-004', patientId: 'P004', patientName: 'Julian Croft', dateIssued: '2024-07-23', amountDue: 25.00, status: 'Paid', practiceId: 'practice-2' },
+    { id: 'STMT-005', patientId: 'P006', patientName: "Liam O'Connell", dateIssued: '2024-07-24', amountDue: 200.00, status: 'Sent', practiceId: 'practice-2' },
+    { id: 'STMT-006', patientId: 'P007', patientName: 'Sophia Rodriguez', dateIssued: '2024-07-25', amountDue: 300.00, status: 'Draft', practiceId: 'practice-3' },
+    { id: 'STMT-007', patientId: 'P008', patientName: 'Kenji Tanaka', dateIssued: '2024-07-26', amountDue: 120.00, status: 'Overdue', practiceId: 'practice-3' },
 ];
 
 export type Appointment = {
@@ -478,15 +498,16 @@ export type Appointment = {
   status: "Scheduled" | "Checked In" | "In Room" | "Checked Out" | "Cancelled" | "No Show";
   room: string;
   notes?: string;
+  practiceId: string;
 };
 
 export const appointments: Appointment[] = [
-    { id: 'APP-001', patientId: 'P001', date: '2024-08-01', time: '10:00 AM', provider: 'Dr. Evelyn Reed', procedure: 'Follow-Up Visit', status: 'Scheduled', room: 'Consultation Room 1' },
-    { id: 'APP-002', patientId: 'P001', date: '2024-07-15', time: '09:30 AM', provider: 'Dr. Evelyn Reed', procedure: 'Office Visit', status: 'Checked Out', room: 'Consultation Room 1' },
-    { id: 'APP-003', patientId: 'P002', date: '2024-08-05', time: '11:00 AM', provider: 'Dr. Ben Carter', procedure: 'Initial Consultation', status: 'Scheduled', room: 'Exam Room 3' },
-    { id: 'APP-004', patientId: 'P003', date: '2024-07-12', time: '02:00 PM', provider: 'Dr. Evelyn Reed', procedure: 'X-Ray review', status: 'Checked Out', room: 'Consultation Room 2' },
-    { id: 'APP-005', patientId: 'P004', date: '2024-07-10', time: '09:00 AM', provider: 'Dr. Samira Khan', procedure: 'Physical Therapy', status: 'No Show', room: 'Therapy Room A' },
-    { id: 'APP-006', patientId: 'P001', date: '2024-06-20', time: '01:00 PM', provider: 'Dr. Evelyn Reed', procedure: 'Routine Checkup', status: 'Checked Out', room: 'Consultation Room 1', notes: 'Patient feels great, no new issues.' },
-    { id: 'APP-007', patientId: 'P002', date: '2024-07-14', time: '09:00 AM', provider: 'Dr. Ben Carter', procedure: 'Pre-op assessment', status: 'Checked Out', room: 'Exam Room 3' },
-    { id: 'APP-008', patientId: 'P005', date: '2024-07-09', time: '03:30 PM', provider: 'Dr. Ben Carter', procedure: 'Blood test follow-up', status: 'Checked Out', room: 'Consultation Room 4' },
+    { id: 'APP-001', patientId: 'P001', date: '2024-08-01', time: '10:00 AM', provider: 'Dr. Evelyn Reed', procedure: 'Follow-Up Visit', status: 'Scheduled', room: 'Consultation Room 1', practiceId: 'practice-1' },
+    { id: 'APP-002', patientId: 'P001', date: '2024-07-15', time: '09:30 AM', provider: 'Dr. Evelyn Reed', procedure: 'Office Visit', status: 'Checked Out', room: 'Consultation Room 1', practiceId: 'practice-1' },
+    { id: 'APP-003', patientId: 'P002', date: '2024-08-05', time: '11:00 AM', provider: 'Dr. Ben Carter', procedure: 'Initial Consultation', status: 'Scheduled', room: 'Exam Room 3', practiceId: 'practice-1' },
+    { id: 'APP-004', patientId: 'P003', date: '2024-07-12', time: '02:00 PM', provider: 'Dr. Evelyn Reed', procedure: 'X-Ray review', status: 'Checked Out', room: 'Consultation Room 2', practiceId: 'practice-1' },
+    { id: 'APP-005', patientId: 'P004', date: '2024-07-10', time: '09:00 AM', provider: 'Dr. Samira Khan', procedure: 'Physical Therapy', status: 'No Show', room: 'Therapy Room A', practiceId: 'practice-2' },
+    { id: 'APP-006', patientId: 'P004', date: '2024-06-20', time: '01:00 PM', provider: 'Dr. Samira Khan', procedure: 'Routine Checkup', status: 'Checked Out', room: 'Consultation Room 1', notes: 'Patient feels great, no new issues.', practiceId: 'practice-2' },
+    { id: 'APP-007', patientId: 'P007', date: '2024-07-14', time: '09:00 AM', provider: 'Dr. Ben Carter', procedure: 'Pre-op assessment', status: 'Checked Out', room: 'Exam Room 3', practiceId: 'practice-3' },
+    { id: 'APP-008', patientId: 'P008', date: '2024-07-09', time: '03:30 PM', provider: 'Dr. Ben Carter', procedure: 'Blood test follow-up', status: 'Checked Out', room: 'Consultation Room 4', practiceId: 'practice-3' },
 ];

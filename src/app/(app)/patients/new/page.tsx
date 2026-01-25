@@ -20,6 +20,7 @@ import { Loader, User, Users, Briefcase, Phone, Wand2, UploadCloud } from 'lucid
 import { Separator } from '@/components/ui/separator';
 import { autoFillPatientData } from '@/ai/flows/auto-fill-patient-data';
 import { Checkbox } from '@/components/ui/checkbox';
+import { usePractice } from '@/context/practice-context';
 
 type PatientFormData = {
     patientName: string;
@@ -69,6 +70,7 @@ export default function NewPatientPage() {
   const [formData, setFormData] = useState<PatientFormData>(initialFormData);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { selectedPractice } = usePractice();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
@@ -134,7 +136,11 @@ export default function NewPatientPage() {
     event.preventDefault();
     setIsSubmitting(true);
 
-    console.log("Submitting patient data:", formData);
+    const newPatientData = {
+        ...formData,
+        practiceId: selectedPractice.id
+    };
+    console.log("Submitting patient data:", newPatientData);
 
     // Simulate API call
     setTimeout(() => {

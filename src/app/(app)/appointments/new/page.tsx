@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
 import { patients, appointments } from '@/lib/data';
 import { Textarea } from '@/components/ui/textarea';
+import { usePractice } from '@/context/practice-context';
 
 // Get unique providers from appointments data for the dropdown
 const providers = [...new Set(appointments.map(a => a.provider))];
@@ -25,12 +26,26 @@ const providers = [...new Set(appointments.map(a => a.provider))];
 export default function NewAppointmentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const { selectedPractice } = usePractice();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
     const patientName = patients.find(p => p.id === formData.get('patientId'))?.name;
+
+    const newAppointment = {
+        patientId: formData.get('patientId'),
+        provider: formData.get('provider'),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        procedure: formData.get('procedure'),
+        room: formData.get('room'),
+        notes: formData.get('notes'),
+        practiceId: selectedPractice.id,
+    };
+    console.log("New Appointment Data:", newAppointment);
+
 
     // Simulate API call
     setTimeout(() => {
@@ -63,7 +78,7 @@ export default function NewAppointmentPage() {
                     <SelectValue placeholder="Select a patient" />
                   </SelectTrigger>
                   <SelectContent>
-                    {patients.map(patient => (
+                    {patients.filter(p => p.practiceId === selectedPractice.id).map(patient => (
                       <SelectItem key={patient.id} value={patient.id}>
                         {patient.name} (ID: {patient.id})
                       </SelectItem>

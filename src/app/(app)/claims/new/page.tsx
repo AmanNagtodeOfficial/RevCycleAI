@@ -21,6 +21,7 @@ import { Loader, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { appointments, patients, claims } from '@/lib/data';
+import { usePractice } from '@/context/practice-context';
 
 type ServiceLine = {
   id: number;
@@ -35,14 +36,16 @@ type ServiceLine = {
 
 // Get unique providers from claims data for the dropdown
 const providers = [...new Set(claims.map(c => c.provider))];
-const completedVisits = appointments.filter(a => a.status === 'Checked Out').map(a => {
-    const patient = patients.find(p => p.id === a.patientId);
-    return { ...a, patientName: patient?.name || 'Unknown' };
-});
 
 export default function NewClaimPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const { selectedPractice } = usePractice();
+
+  const completedVisits = appointments.filter(a => a.status === 'Checked Out' && a.practiceId === selectedPractice.id).map(a => {
+    const patient = patients.find(p => p.id === a.patientId);
+    return { ...a, patientName: patient?.name || 'Unknown' };
+  });
 
   // Controlled form state
   const [patientName, setPatientName] = useState('');
@@ -172,6 +175,13 @@ export default function NewClaimPage() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+
+    const newClaim = {
+        patientId,
+        practiceId: selectedPractice.id,
+        // ... gather all other form data
+    };
+    console.log("New Claim Data:", newClaim);
 
     setTimeout(() => {
         setIsSubmitting(false);

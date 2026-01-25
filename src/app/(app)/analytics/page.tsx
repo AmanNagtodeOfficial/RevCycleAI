@@ -1,49 +1,59 @@
 'use client'
 
+import React from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { claims } from "@/lib/data";
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
 import { Badge } from "@/components/ui/badge";
-
-// Aggregate data for charts
-const claimStatusData = claims.reduce((acc, claim) => {
-    acc[claim.status] = (acc[claim.status] || 0) + 1;
-    return acc;
-}, {} as Record<string, number>);
-
-const claimStatusChartData = Object.entries(claimStatusData).map(([name, value]) => ({ name, value }));
-
-const denialData = claims.filter(c => c.status === 'Denied' && c.denialReason).reduce((acc, claim) => {
-    acc[claim.denialReason!] = (acc[claim.denialReason!] || 0) + 1;
-    return acc;
-}, {} as Record<string, number>);
-
-const denialChartData = Object.entries(denialData).map(([name, value]) => ({ name, value }));
-
-const payerPerformanceData = claims.reduce((acc, claim) => {
-    if (!acc[claim.payer]) {
-        acc[claim.payer] = { name: claim.payer, total: 0, paid: 0, denied: 0, totalAmount: 0 };
-    }
-    acc[claim.payer].total++;
-    acc[claim.payer].totalAmount += claim.amount;
-    if (claim.status === 'Paid') acc[claim.payer].paid++;
-    if (claim.status === 'Denied') acc[claim.payer].denied++;
-    return acc;
-}, {} as Record<string, any>);
-
-const payerTableData = Object.values(payerPerformanceData).map(p => ({
-    ...p,
-    paidRate: (p.paid / p.total * 100).toFixed(1) + '%',
-    denialRate: (p.denied / p.total * 100).toFixed(1) + '%',
-}));
+import { usePractice } from '@/context/practice-context';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function AnalyticsPage() {
+    const { selectedPractice } = usePractice();
+
+    const practiceClaims = React.useMemo(() => claims.filter(c => c.practiceId === selectedPractice.id), [selectedPractice]);
+    
+    // Aggregate data for charts
+    const claimStatusChartData = React.useMemo(() => {
+        const data = practiceClaims.reduce((acc, claim) => {
+            acc[claim.status] = (acc[claim.status] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(data).map(([name, value]) => ({ name, value }));
+    }, [practiceClaims]);
+
+
+    const denialChartData = React.useMemo(() => {
+        const data = practiceClaims.filter(c => c.status === 'Denied' && c.denialReason).reduce((acc, claim) => {
+            acc[claim.denialReason!] = (acc[claim.denialReason!] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(data).map(([name, value]) => ({ name, value }));
+    }, [practiceClaims]);
+
+    const payerTableData = React.useMemo(() => {
+        const data = practiceClaims.reduce((acc, claim) => {
+            if (!acc[claim.payer]) {
+                acc[claim.payer] = { name: claim.payer, total: 0, paid: 0, denied: 0, totalAmount: 0 };
+            }
+            acc[claim.payer].total++;
+            acc[claim.payer].totalAmount += claim.amount;
+            if (claim.status === 'Paid') acc[claim.payer].paid++;
+            if (claim.status === 'Denied') acc[claim.payer].denied++;
+            return acc;
+        }, {} as Record<string, any>);
+        return Object.values(data).map(p => ({
+            ...p,
+            paidRate: p.total > 0 ? (p.paid / p.total * 100).toFixed(1) + '%' : '0.0%',
+            denialRate: p.total > 0 ? (p.denied / p.total * 100).toFixed(1) + '%' : '0.0%',
+        }));
+    }, [practiceClaims]);
+
     return (
         <div className="space-y-6">
-            <PageHeader title="Analytics Dashboard" description="Deep dive into your revenue cycle performance with advanced insights." />
+            <PageHeader title="Analytics Dashboard" description={`Insights for ${selectedPractice.name}.`} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>

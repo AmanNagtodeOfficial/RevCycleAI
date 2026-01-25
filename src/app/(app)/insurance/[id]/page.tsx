@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from 'react';
 import { PageHeader } from "@/components/page-header";
 import { insurancePlans } from "@/lib/insurance-data";
 import { claims } from "@/lib/data";
@@ -30,15 +31,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FileClock, CheckCircle, AlertTriangle, ShieldCheck } from "lucide-react";
 import { DataTable } from "@/components/data-table";
+import { usePractice } from '@/context/practice-context';
 
 export default function InsuranceDetailPage({ params }: { params: { id: string } }) {
+  const { selectedPractice } = usePractice();
   const plan = insurancePlans.find(p => p.id === params.id);
 
   if (!plan) {
     notFound();
   }
 
-  const associatedClaims = claims.filter(c => c.payer === plan.payerName);
+  const associatedClaims = React.useMemo(() => {
+    return claims.filter(c => c.payer === plan.payerName && c.practiceId === selectedPractice.id);
+  }, [plan.payerName, selectedPractice.id]);
 
   return (
     <div className="space-y-6">
