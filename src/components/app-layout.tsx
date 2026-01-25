@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -29,6 +30,8 @@ import {
   Receipt,
   Briefcase,
   CalendarDays,
+  Building,
+  Check,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -39,10 +42,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
+import { practices, Practice } from '@/lib/data';
 
 const menuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -61,6 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const app = useFirebaseApp();
   const auth = getAuth(app);
+  const [selectedPractice, setSelectedPractice] = useState<Practice>(practices[0]);
 
   const handleLogout = () => {
     auth.signOut();
@@ -127,6 +134,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                  <h1 className="text-xl font-semibold hidden md:block">Welcome back, {user?.displayName?.split(' ')[0] || 'Admin'}</h1>
             </div>
           <div className="flex items-center gap-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  <span className="hidden sm:inline">{selectedPractice.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Switch Practice</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={selectedPractice.id} onValueChange={(id) => setSelectedPractice(practices.find(p => p.id === id)!)}>
+                  {practices.map((practice) => (
+                    <DropdownMenuRadioItem key={practice.id} value={practice.id} className="cursor-pointer">
+                      {practice.name}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">

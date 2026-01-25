@@ -1,4 +1,5 @@
 
+
 export type Claim = {
   id: string;
   patient: string;
@@ -67,6 +68,17 @@ export type Statement = {
   amountDue: number;
   status: "Paid" | "Sent" | "Overdue" | "Draft";
 };
+
+export type Practice = {
+  id: string;
+  name: string;
+};
+
+export const practices: Practice[] = [
+  { id: 'practice-1', name: 'General Hospital' },
+  { id: 'practice-2', name: 'Pediatrics Clinic' },
+  { id: 'practice-3', name: 'Cardiology Associates' },
+];
 
 export const claims: Claim[] = [
   {
