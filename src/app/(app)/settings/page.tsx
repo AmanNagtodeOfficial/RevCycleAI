@@ -15,13 +15,14 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { updateProfile } from 'firebase/auth';
 import { toast } from '@/hooks/use-toast';
-import { Loader, User, Shield, Palette } from 'lucide-react';
+import { Loader, User, Shield, Palette, Database } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { seedDatabase } from '@/lib/seed-db';
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50, { message: "Name must not be longer than 50 characters." }),
@@ -32,7 +33,9 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export default function SettingsPage() {
   const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const [isSaving, setIsSaving] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -70,6 +73,16 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSeed = async () => {
+    if (!firestore) {
+      toast({ title: "Firestore not available", variant: "destructive" });
+      return;
+    }
+    setIsSeeding(true);
+    await seedDatabase(firestore);
+    setIsSeeding(false);
   };
 
   return (
@@ -164,6 +177,24 @@ export default function SettingsPage() {
                     <Button variant="destructive" disabled>Delete Account</Button>
                 </div>
             </CardContent>
+          </Card>
+          <Card className="mt-6">
+              <CardHeader>
+                  <CardTitle>Developer Settings</CardTitle>
+                  <CardDescription>Actions for development and testing purposes.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                          <h3 className="font-semibold">Seed Database</h3>
+                          <p className="text-sm text-muted-foreground">Populate the database with dummy data. This will overwrite existing data with the same IDs.</p>
+                      </div>
+                      <Button variant="outline" onClick={handleSeed} disabled={isSeeding}>
+                          {isSeeding ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                          Seed Data
+                      </Button>
+                  </div>
+              </CardContent>
           </Card>
         </TabsContent>
 

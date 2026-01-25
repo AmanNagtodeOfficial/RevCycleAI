@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
+import { errorEmitter } from '../error-emitter';
 
 type DocumentWithId<T> = T & { id: string };
 
@@ -31,7 +32,9 @@ export function useCollection<T extends DocumentData>(
         setError(null);
       },
       (err) => {
-        console.error('Error fetching collection:', err);
+        // Cannot construct a full FirestorePermissionError without the path,
+        // which is not easily available on a Query object.
+        errorEmitter.emit('permission-error', err);
         setError(err);
         setIsLoading(false);
         setData(null);
