@@ -1,6 +1,7 @@
 
 'use client'
 
+import React from 'react';
 import { PageHeader } from "@/components/page-header";
 import { statements, claims, Claim } from "@/lib/data";
 import { columns } from "./columns";
@@ -13,10 +14,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, FileWarning, Mail, FileCheck, Send, TestTube2 } from "lucide-react";
+import { DollarSign, FileWarning, Mail, FileCheck, Send, TestTube2, Cog, History, PauseCircle, CheckSquare, XSquare, FileText, AlertCircle, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { payments, Payment } from "@/lib/payments-data";
-import { Row } from '@tanstack/react-table';
+import { Row, SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, flexRender, ColumnFiltersState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import Link from "next/link";
 import {
   Table,
@@ -27,6 +28,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge";
+import { insuranceBillingColumns } from "./insurance-billing-columns";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 function renderSubComponent({ row }: { row: Row<Payment> }) {
     const payment = row.original;
@@ -67,6 +73,147 @@ function renderSubComponent({ row }: { row: Row<Payment> }) {
     )
 }
 
+function InsuranceBillingWorkbench() {
+    const [data] = React.useState(() => [...claims]);
+    const [sorting, setSorting] = React.useState<SortingState>([]);
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+    const table = useReactTable({
+        data,
+        columns: insuranceBillingColumns,
+        onSortingChange: setSorting,
+        onColumnFiltersChange: setColumnFilters,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        onColumnVisibilityChange: setColumnVisibility,
+        onRowSelectionChange: setRowSelection,
+        state: {
+            sorting,
+            columnFilters,
+            columnVisibility,
+            rowSelection,
+        },
+    });
+
+    const selectedRows = table.getSelectedRowModel().rows;
+    const totalSelectedAmount = selectedRows.reduce((total, row) => total + row.original.amount, 0);
+
+    return (
+        <div className="space-y-4">
+            <Card className="p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 items-end">
+                    <div className="space-y-2 col-span-2">
+                        <Label htmlFor="patient-filter">Patient</Label>
+                        <Input id="patient-filter" placeholder="Filter by patient..." value={(table.getColumn("patient")?.getFilterValue() as string) ?? ""} onChange={(event) => table.getColumn("patient")?.setFilterValue(event.target.value)} />
+                    </div>
+                     <div className="space-y-2 col-span-2">
+                        <Label htmlFor="insurance-filter">Insurance</Label>
+                        <Input id="insurance-filter" placeholder="Filter by insurance..." value={(table.getColumn("payer")?.getFilterValue() as string) ?? ""} onChange={(event) => table.getColumn("payer")?.setFilterValue(event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="priority-filter">Priority</Label>
+                        <Select value={(table.getColumn("priority")?.getFilterValue() as string) ?? ""} onValueChange={(value) => table.getColumn("priority")?.setFilterValue(value === "all" ? "" : value)}>
+                            <SelectTrigger id="priority-filter"><SelectValue placeholder="All" /></SelectTrigger>
+                            <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="Primary">Primary</SelectItem><SelectItem value="Secondary">Secondary</SelectItem><SelectItem value="Tertiary">Tertiary</SelectItem></SelectContent>
+                        </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="type-filter">Type</Label>
+                         <Select value={(table.getColumn("submissionType")?.getFilterValue() as string) ?? ""} onValueChange={(value) => table.getColumn("submissionType")?.setFilterValue(value === "all" ? "" : value)}>
+                            <SelectTrigger id="type-filter"><SelectValue placeholder="Both" /></SelectTrigger>
+                            <SelectContent><SelectItem value="all">Both</SelectItem><SelectItem value="EMC">EMC</SelectItem><SelectItem value="Paper">Paper</SelectItem></SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="form-filter">Form</Label>
+                        <Select value={(table.getColumn("formType")?.getFilterValue() as string) ?? ""} onValueChange={(value) => table.getColumn("formType")?.setFilterValue(value === "all" ? "" : value)}>
+                            <SelectTrigger id="form-filter"><SelectValue placeholder="All" /></SelectTrigger>
+                            <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="CMS 1500">CMS 1500</SelectItem><SelectItem value="UB04">UB04</SelectItem></SelectContent>
+                        </Select>
+                    </div>
+                    <Button className="w-full"><Search className="mr-2 h-4 w-4" />Retrieve</Button>
+                </div>
+            </Card>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-4 items-start">
+                <div className="space-y-2">
+                    <Card>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        {table.getHeaderGroups().map((headerGroup) => (
+                                            <TableRow key={headerGroup.id}>
+                                                {headerGroup.headers.map((header) => (
+                                                    <TableHead key={header.id} className="whitespace-nowrap">
+                                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                                    </TableHead>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableHeader>
+                                    <TableBody>
+                                        {table.getRowModel().rows?.length ? (
+                                            table.getRowModel().rows.map((row) => (
+                                                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                                    {row.getVisibleCells().map((cell) => (
+                                                        <TableCell key={cell.id} className="whitespace-nowrap">
+                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                        </TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={insuranceBillingColumns.length} className="h-24 text-center">No results.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <div className="flex justify-between items-center text-sm font-medium p-2 border rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-4">
+                           <span className="flex items-center gap-1 text-red-600"><AlertCircle className="h-4 w-4" /> Overdue Claim Filing Days</span>
+                           <span>Scrubbing On</span>
+                           <span>Transaction on Hold [{claims.filter(c => c.status === 'Pending').length}]</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span>Total: {selectedRows.length || table.getCoreRowModel().rows.length}</span>
+                             <span className="font-bold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalSelectedAmount || table.getCoreRowModel().rows.reduce((acc, row) => acc + row.original.amount, 0))}</span>
+                        </div>
+                    </div>
+                </div>
+
+                 <Card className="w-full xl:w-[180px] shrink-0">
+                    <CardHeader className="p-2 border-b">
+                        <Button className="w-full"><DollarSign className="mr-2 h-4 w-4"/>Pre-Claim</Button>
+                    </CardHeader>
+                    <CardContent className="p-2 space-y-2">
+                        <h4 className="font-semibold text-sm px-2">EMC:</h4>
+                        <Button variant="outline" className="w-full justify-start"><Cog className="mr-2 h-4 w-4" />Generate</Button>
+                        <Button variant="outline" className="w-full justify-start"><Send className="mr-2 h-4 w-4" />Send/Rece.</Button>
+                        <Separator />
+                        <h4 className="font-semibold text-sm px-2">Paper:</h4>
+                         <Button variant="outline" className="w-full justify-start"><FileText className="mr-2 h-4 w-4" />CMS 1500</Button>
+                         <Button variant="outline" className="w-full justify-start"><FileText className="mr-2 h-4 w-4" />UB04</Button>
+                         <Separator />
+                        <Button variant="outline" className="w-full justify-start"><History className="mr-2 h-4 w-4" />History</Button>
+                        <Button variant="outline" className="w-full justify-start"><PauseCircle className="mr-2 h-4 w-4" />Hold</Button>
+                        <Separator />
+                        <Button variant="outline" className="w-full justify-start" onClick={() => table.toggleAllRowsSelected(true)}><CheckSquare className="mr-2 h-4 w-4"/>Select All</Button>
+                        <Button variant="outline" className="w-full justify-start" onClick={() => table.toggleAllRowsSelected(false)}><XSquare className="mr-2 h-4 w-4"/>Deselect All</Button>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
 export default function BillingPage() {
 
     const data = statements;
@@ -78,15 +225,6 @@ export default function BillingPage() {
         paidThisMonth: data.filter(s => s.status === 'Paid').length, // Simplified
     }
     
-    const claimsToBill = claims.filter(c => c.status === 'Scrubbing');
-    const claimsByPayer = claimsToBill.reduce((acc, claim) => {
-        if (!acc[claim.payer]) {
-            acc[claim.payer] = [];
-        }
-        acc[claim.payer].push(claim);
-        return acc;
-    }, {} as Record<string, Claim[]>);
-
 
     return (
         <div className="space-y-6">
@@ -149,64 +287,8 @@ export default function BillingPage() {
 
                     <DataTable columns={columns} data={data} filterColumn="patientName" filterPlaceholder="Filter by patient name..." />
                 </TabsContent>
-                <TabsContent value="insurance" className="mt-4 space-y-6">
-                     <div className="flex items-center justify-between">
-                         <h2 className="text-xl font-semibold tracking-tight">Claim Submission Workbench</h2>
-                         <div className="flex gap-2">
-                            <Button variant="outline"><TestTube2 className="mr-2 h-4 w-4" /> Send for Scrubbing</Button>
-                            <Button><Send className="mr-2 h-4 w-4" /> Send to Clearing House</Button>
-                        </div>
-                    </div>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Claims Ready for Submission</CardTitle>
-                            <CardDescription>
-                                These claims have passed initial checks and are ready for scrubbing or submission to the clearing house.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {Object.entries(claimsByPayer).length > 0 ? Object.entries(claimsByPayer).map(([payer, payerClaims]) => (
-                                <div key={payer} className="border rounded-lg p-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-semibold text-lg">{payer}</h3>
-                                        <div className="text-right">
-                                            <p className="font-semibold">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(payerClaims.reduce((acc, claim) => acc + claim.amount, 0))}</p>
-                                            <p className="text-sm text-muted-foreground">{payerClaims.length} {payerClaims.length === 1 ? 'Claim' : 'Claims'}</p>
-                                        </div>
-                                    </div>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Claim ID</TableHead>
-                                                <TableHead>Patient</TableHead>
-                                                <TableHead>DOS</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right">Amount</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {payerClaims.map(claim => (
-                                                <TableRow key={claim.id}>
-                                                    <TableCell>
-                                                        <Link href={`/claims/${claim.id}`} className="font-medium text-primary hover:underline">{claim.id}</Link>
-                                                    </TableCell>
-                                                    <TableCell>{claim.patient}</TableCell>
-                                                    <TableCell>{claim.dateOfService}</TableCell>
-                                                     <TableCell><Badge variant="outline" className="border-primary/50 text-primary">{claim.status}</Badge></TableCell>
-                                                    <TableCell className="text-right font-medium">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(claim.amount)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )) : (
-                                <div className="text-center py-10 text-muted-foreground">
-                                    No claims are currently in the scrubbing phase.
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                <TabsContent value="insurance" className="mt-4">
+                    <InsuranceBillingWorkbench />
                 </TabsContent>
             </Tabs>
         </div>

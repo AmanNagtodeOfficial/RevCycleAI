@@ -20,6 +20,10 @@ export type Claim = {
     suggestion: string;
     actionType: string;
   }[];
+  submissionType: 'EMC' | 'Paper';
+  formType: 'CMS 1500' | 'UB04';
+  priority: 'Primary' | 'Secondary' | 'Tertiary' | 'Non-Primary';
+  claimCount: number;
 };
 
 export type Patient = {
@@ -81,7 +85,11 @@ export const claims: Claim[] = [
     history: [
         { status: "Paid", date: "2024-07-25", user: "System" },
         { status: "Submitted", date: "2024-07-15", user: "Admin" },
-    ]
+    ],
+    submissionType: 'EMC',
+    formType: 'CMS 1500',
+    priority: 'Primary',
+    claimCount: 1,
   },
   {
     id: "C20240714002",
@@ -115,7 +123,11 @@ export const claims: Claim[] = [
         suggestion: "Ensure clinical notes explicitly state the reason for the tissue exam and support the medical necessity.",
         actionType: "Verify Documentation"
       }
-    ]
+    ],
+    submissionType: 'EMC',
+    formType: 'CMS 1500',
+    priority: 'Primary',
+    claimCount: 1,
   },
   {
     id: "C20240712003",
@@ -134,7 +146,11 @@ export const claims: Claim[] = [
     history: [
         { status: "Pending", date: "2024-07-22", user: "UHC" },
         { status: "Submitted", date: "2024-07-12", user: "Admin" },
-    ]
+    ],
+    submissionType: 'EMC',
+    formType: 'CMS 1500',
+    priority: 'Primary',
+    claimCount: 2,
   },
   {
     id: "C20240710004",
@@ -161,7 +177,11 @@ export const claims: Claim[] = [
             suggestion: "Consider adding modifier 25 if a separate E/M service was provided on the same day as another procedure.",
             actionType: "Add Modifier"
         }
-    ]
+    ],
+    submissionType: 'Paper',
+    formType: 'CMS 1500',
+    priority: 'Secondary',
+    claimCount: 1,
   },
   {
     id: "C20240709005",
@@ -180,7 +200,11 @@ export const claims: Claim[] = [
     history: [
         { status: "Paid", date: "2024-07-19", user: "System" },
         { status: "Submitted", date: "2024-07-09", user: "Admin" },
-    ]
+    ],
+    submissionType: 'EMC',
+    formType: 'CMS 1500',
+    priority: 'Primary',
+    claimCount: 3,
   },
    {
     id: "C20240708006",
@@ -199,7 +223,11 @@ export const claims: Claim[] = [
     history: [
       { status: "Pending", date: "2024-07-18", user: "Aetna" },
       { status: "Submitted", date: "2024-07-08", user: "Admin" },
-    ]
+    ],
+    submissionType: 'Paper',
+    formType: 'CMS 1500',
+    priority: 'Primary',
+    claimCount: 1,
   },
   {
     id: "C20240705007",
@@ -219,7 +247,11 @@ export const claims: Claim[] = [
     history: [
       { status: "Denied", date: "2024-07-15", user: "Cigna" },
       { status: "Submitted", date: "2024-07-05", user: "Admin" },
-    ]
+    ],
+    submissionType: 'EMC',
+    formType: 'CMS 1500',
+    priority: 'Primary',
+    claimCount: 1,
   },
   {
     id: "C20240701008",
@@ -238,7 +270,11 @@ export const claims: Claim[] = [
     history: [
         { status: "Paid", date: "2024-07-10", user: "System" },
         { status: "Submitted", date: "2024-07-01", user: "Admin" },
-    ]
+    ],
+    submissionType: 'Paper',
+    formType: 'CMS 1500',
+    priority: 'Tertiary',
+    claimCount: 2,
   },
 ];
 
