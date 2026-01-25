@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -25,6 +26,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +45,7 @@ interface DataTableProps<TData, TValue> {
   filterColumn?: string
   filterPlaceholder?: string
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement
+  showFooter?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -51,6 +54,7 @@ export function DataTable<TData, TValue>({
   filterColumn,
   filterPlaceholder,
   renderSubComponent,
+  showFooter = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -201,6 +205,24 @@ export function DataTable<TData, TValue>({
               </TableRow>
             )}
           </TableBody>
+          {showFooter && (
+            <TableFooter>
+                {table.getFooterGroups().map((footerGroup) => (
+                    <TableRow key={footerGroup.id}>
+                        {footerGroup.headers.map((header) => (
+                            <TableHead key={header.id} colSpan={header.colSpan} className="p-4 text-right">
+                                {header.isPlaceholder
+                                    ? null
+                                    : flexRender(
+                                        header.column.columnDef.footer,
+                                        header.getContext()
+                                    )}
+                            </TableHead>
+                        ))}
+                    </TableRow>
+                ))}
+            </TableFooter>
+          )}
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">

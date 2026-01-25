@@ -243,7 +243,9 @@ export default function BillingPage() {
                          <h2 className="text-xl font-semibold tracking-tight">Patient Statements</h2>
                          <div className="flex gap-2">
                             <Button variant="outline">Send Reminders</Button>
-                            <Button>Generate Statements</Button>
+                             <Button asChild>
+                                <Link href="/billing/statements">Generate Statements</Link>
+                            </Button>
                         </div>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
