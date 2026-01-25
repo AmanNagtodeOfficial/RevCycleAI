@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -20,8 +20,11 @@ import { useRouter } from 'next/navigation';
 import { Loader, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { appointments, patients, claims } from '@/lib/data';
 import { usePractice } from '@/context/practice-context';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, addDoc, query, where, Timestamp } from 'firebase/firestore';
+import { Patient, Appointment, Claim } from '@/lib/data';
+
 
 type ServiceLine = {
   id: number;
@@ -34,18 +37,47 @@ type ServiceLine = {
   charges: string;
 };
 
-// Get unique providers from claims data for the dropdown
-const providers = [...new Set(claims.map(c => c.provider))];
-
 export default function NewClaimPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { selectedPractice } = usePractice();
+  const firestore = useFirestore();
 
-  const completedVisits = appointments.filter(a => a.status === 'Checked Out' && a.practiceId === selectedPractice.id).map(a => {
-    const patient = patients.find(p => p.id === a.patientId);
-    return { ...a, patientName: patient?.name || 'Unknown' };
-  });
+  const appointmentsQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(collection(firestore, 'appointments'), where('practiceId', '==', selectedPractice.id));
+  }, [firestore, selectedPractice]);
+
+  const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery);
+
+  const patientsQuery = useMemo(() => {
+      if (!firestore || !selectedPractice) return null;
+      return query(collection(firestore, 'patients'), where('practiceId', '==', selectedPractice.id));
+  }, [firestore, selectedPractice]);
+  const { data: patients, isLoading: patientsLoading } = useCollection<Patient>(patientsQuery);
+
+  const claimsQuery = useMemo(() => {
+      if (!firestore || !selectedPractice) return null;
+      return query(collection(firestore, 'claims'), where('practiceId', '==', selectedPractice.id));
+  }, [firestore, selectedPractice]);
+  const { data: claims, isLoading: claimsLoading } = useCollection<Claim>(claimsQuery);
+
+
+  const completedVisits = useMemo(() => {
+    if (!appointments || !patients) return [];
+    return appointments.filter(a => a.status === 'Checked Out').map(a => {
+      const patient = patients.find(p => p.id === a.patientId);
+      return { ...a, patientName: patient?.name || 'Unknown' };
+    });
+  }, [appointments, patients]);
+
+  const providers = useMemo(() => {
+    if (!claims) return [];
+    const uniqueProviders = [...new Set(claims.map(c => c.provider))];
+    const allProviders = new Set([...uniqueProviders, 'Dr. Evelyn Reed', 'Dr. Ben Carter', 'Dr. Samira Khan', 'Dr. Egon Spengler', 'Dr. Ray Stantz']);
+    return Array.from(allProviders);
+  }, [claims]);
+
 
   // Controlled form state
   const [patientName, setPatientName] = useState('');
@@ -67,8 +99,8 @@ export default function NewClaimPage() {
   useEffect(() => {
     if (!selectedVisitId) return;
 
-    const visit = appointments.find(a => a.id === selectedVisitId);
-    if (!visit) return;
+    const visit = completedVisits.find(a => a.id === selectedVisitId);
+    if (!visit || !patients) return;
     const patient = patients.find(p => p.id === visit.patientId);
     if (!patient) return;
 
@@ -102,7 +134,7 @@ export default function NewClaimPage() {
         charges: '',
     }]);
 
-  }, [selectedVisitId]);
+  }, [selectedVisitId, completedVisits, patients]);
 
   const handleAddServiceLine = () => {
     setServiceLines([
@@ -172,26 +204,58 @@ export default function NewClaimPage() {
     0
   );
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!firestore || !selectedPractice) return;
     setIsSubmitting(true);
 
-    const newClaim = {
+    const newClaimData: Omit<Claim, 'id' | 'date' | 'lastActivity' | 'dateOfService'> = {
+        patient: patientName,
         patientId,
+        provider,
+        payer,
+        amount: totalCharges,
+        status: "Submitted",
+        denialReason: '',
+        riskScore: Math.floor(Math.random() * 30), // simple random score for new claims
+        procedure: serviceLines.map(sl => sl.procedureCode).join(', '),
+        diagnosis: dxCodes.filter(Boolean).join(', '),
+        history: [{ status: 'Submitted', date: new Date().toLocaleDateString(), user: 'Admin' }],
+        submissionType: 'EMC',
+        formType: 'CMS 1500',
+        priority: 'Primary',
+        claimCount: serviceLines.length,
         practiceId: selectedPractice.id,
-        // ... gather all other form data
     };
-    console.log("New Claim Data:", newClaim);
+    
+    const newClaim = {
+        ...newClaimData,
+        date: Timestamp.now(),
+        lastActivity: Timestamp.now(),
+        dateOfService: Timestamp.fromDate(new Date(serviceLines[0]?.dateOfService || Date.now())),
+    }
 
-    setTimeout(() => {
-        setIsSubmitting(false);
+    try {
+        await addDoc(collection(firestore, 'claims'), newClaim);
         toast({
             title: "Claim Submitted Successfully",
             description: `Claim for ${patientName} has been created with a total charge of $${totalCharges.toFixed(2)}.`,
         });
         router.push('/claims');
-    }, 1500);
+    } catch(e: any) {
+         toast({
+            title: "Error submitting claim",
+            description: e.message,
+            variant: "destructive"
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
+
+  if (appointmentsLoading || patientsLoading || claimsLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="space-y-6">

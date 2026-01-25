@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -16,26 +16,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
-import { patients, appointments } from '@/lib/data';
 import { Textarea } from '@/components/ui/textarea';
 import { usePractice } from '@/context/practice-context';
-
-// Get unique providers from appointments data for the dropdown
-const providers = [...new Set(appointments.map(a => a.provider))];
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, addDoc, query, where } from 'firebase/firestore';
+import { Patient, Appointment } from '@/lib/data';
 
 export default function NewAppointmentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { selectedPractice } = usePractice();
+  const firestore = useFirestore();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const patientsQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(collection(firestore, 'patients'), where('practiceId', '==', selectedPractice.id));
+  }, [firestore, selectedPractice]);
+  const { data: patients, isLoading: patientsLoading } = useCollection<Patient>(patientsQuery);
+
+  const appointmentsQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(collection(firestore, 'appointments'), where('practiceId', '==', selectedPractice.id));
+  }, [firestore, selectedPractice]);
+  const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery);
+
+  const providers = useMemo(() => {
+    if (!appointments) return [];
+    // Get providers from the appointments in the current practice
+    const uniqueProviders = [...new Set(appointments.map(a => a.provider))];
+    // Add some default/other providers for the new practice if it has no appointments yet
+    const allProviders = new Set([...uniqueProviders, 'Dr. Evelyn Reed', 'Dr. Ben Carter', 'Dr. Samira Khan', 'Dr. Egon Spengler', 'Dr. Ray Stantz']);
+    return Array.from(allProviders);
+  }, [appointments]);
+
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!firestore || !selectedPractice) return;
+
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
-    const patientName = patients.find(p => p.id === formData.get('patientId'))?.name;
+    const patientId = formData.get('patientId') as string;
+    const patient = patients?.find(p => p.id === patientId);
 
     const newAppointment = {
-        patientId: formData.get('patientId'),
+        patientId: patientId,
+        patientName: patient?.name || 'Unknown Patient',
         provider: formData.get('provider'),
         date: formData.get('date'),
         time: formData.get('time'),
@@ -43,20 +69,30 @@ export default function NewAppointmentPage() {
         room: formData.get('room'),
         notes: formData.get('notes'),
         practiceId: selectedPractice.id,
+        status: 'Scheduled',
     };
-    console.log("New Appointment Data:", newAppointment);
 
-
-    // Simulate API call
-    setTimeout(() => {
-        setIsSubmitting(false);
+    try {
+        await addDoc(collection(firestore, 'appointments'), newAppointment);
         toast({
             title: "Appointment Scheduled",
-            description: `An appointment for ${patientName} has been scheduled successfully.`,
+            description: `An appointment for ${newAppointment.patientName} has been scheduled successfully.`,
         });
         router.push('/appointments');
-    }, 1500);
+    } catch (error: any) {
+        toast({
+            title: "Error scheduling appointment",
+            description: error.message,
+            variant: "destructive"
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
+  
+  if (patientsLoading || appointmentsLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -78,7 +114,7 @@ export default function NewAppointmentPage() {
                     <SelectValue placeholder="Select a patient" />
                   </SelectTrigger>
                   <SelectContent>
-                    {patients.filter(p => p.practiceId === selectedPractice.id).map(patient => (
+                    {patients?.map(patient => (
                       <SelectItem key={patient.id} value={patient.id}>
                         {patient.name} (ID: {patient.id})
                       </SelectItem>
