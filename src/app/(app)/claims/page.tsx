@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { claims } from "@/lib/data"
+import { claims, Claim } from "@/lib/data"
 import { PageHeader } from "@/components/page-header"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,6 @@ import { DataTable } from '@/components/data-table';
 import { columns } from './columns';
 import { cn } from '@/lib/utils';
 import type { Row } from '@tanstack/react-table';
-import type { Claim } from '@/lib/data';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -77,7 +76,7 @@ function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
   )
 }
 
-function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect: (payer: string) => void; selectedPayer: string | null; }) {
+function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Claim[]; onPayerSelect: (payer: string) => void; selectedPayer: string | null; }) {
     const arSummaryData: PayerARSummary[] = useMemo(() => {
         const daysSince = (dateString: string): number => {
             const date = new Date(dateString);
@@ -86,7 +85,7 @@ function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect:
             return Math.floor(differenceInTime / (1000 * 3600 * 24));
         };
         
-        const outstandingClaims = claims.filter(c => c.status !== 'Paid');
+        const outstandingClaims = data.filter(c => c.status !== 'Paid');
         
         const arDataByPayer = outstandingClaims.reduce((acc, claim) => {
             const payerData: PayerARSummary = acc[claim.payer] || {
@@ -117,7 +116,7 @@ function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect:
         }, {} as Record<string, PayerARSummary>);
 
         return Object.values(arDataByPayer).sort((a,b) => b.balance - a.balance);
-    }, []);
+    }, [data]);
 
     const totals = useMemo(() => {
         return arSummaryData.reduce((acc, row) => {
@@ -158,7 +157,7 @@ function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect:
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {arSummaryData.map((row) => (
+                            {arSummaryData.length > 0 ? arSummaryData.map((row) => (
                                 <TableRow 
                                     key={row.payerName}
                                     onClick={() => onPayerSelect(row.payerName)}
@@ -174,18 +173,26 @@ function ARSummaryByInsurance({ onPayerSelect, selectedPayer }: { onPayerSelect:
                                     <TableCell className="text-right">{formatCurrency(row.age_over_90)}</TableCell>
                                     <TableCell className="text-right font-bold pr-4">{formatCurrency(row.balance)}</TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        No A/R data for this view.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableHead className="pl-4">Total</TableHead>
-                                <TableHead className="text-right">{formatCurrency(totals.age_0_30)}</TableHead>
-                                <TableHead className="text-right">{formatCurrency(totals.age_31_60)}</TableHead>
-                                <TableHead className="text-right">{formatCurrency(totals.age_61_90)}</TableHead>
-                                <TableHead className="text-right">{formatCurrency(totals.age_over_90)}</TableHead>
-                                <TableHead className="text-right font-bold pr-4">{formatCurrency(totals.balance)}</TableHead>
-                            </TableRow>
-                        </TableFooter>
+                        {arSummaryData.length > 0 && (
+                            <TableFooter>
+                                <TableRow>
+                                    <TableHead className="pl-4">Total</TableHead>
+                                    <TableHead className="text-right">{formatCurrency(totals.age_0_30)}</TableHead>
+                                    <TableHead className="text-right">{formatCurrency(totals.age_31_60)}</TableHead>
+                                    <TableHead className="text-right">{formatCurrency(totals.age_61_90)}</TableHead>
+                                    <TableHead className="text-right">{formatCurrency(totals.age_over_90)}</TableHead>
+                                    <TableHead className="text-right font-bold pr-4">{formatCurrency(totals.balance)}</TableHead>
+                                </TableRow>
+                            </TableFooter>
+                        )}
                     </Table>
                 </div>
             </CardContent>
@@ -201,27 +208,24 @@ export default function ClaimsPage() {
     setSelectedPayer(current => current === payerName ? null : payerName);
   };
 
-  const filteredClaims = useMemo(() => {
-    let claimsByStatus = claims;
+  const claimsForTab = useMemo(() => {
     switch(activeTab) {
         case 'attention':
-            claimsByStatus = claims.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
-            break;
+            return claims.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
         case 'in-process':
-            claimsByStatus = claims.filter(c => c.status === 'Pending' || c.status === 'Submitted');
-            break;
+            return claims.filter(c => c.status === 'Pending' || c.status === 'Submitted');
         case 'paid':
-            claimsByStatus = claims.filter(c => c.status === 'Paid');
-            break;
+            return claims.filter(c => c.status === 'Paid');
         case 'all':
         default:
-            claimsByStatus = claims;
-            break;
+            return claims;
     }
+  }, [activeTab]);
 
-    if (!selectedPayer) return claimsByStatus;
-    return claimsByStatus.filter(c => c.payer === selectedPayer);
-  }, [activeTab, selectedPayer]);
+  const filteredClaims = useMemo(() => {
+    if (!selectedPayer) return claimsForTab;
+    return claimsForTab.filter(c => c.payer === selectedPayer);
+  }, [claimsForTab, selectedPayer]);
   
   const stats = {
       total: claims.length,
@@ -280,7 +284,7 @@ export default function ClaimsPage() {
         </Card>
       </div>
 
-       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+       <Tabs defaultValue="all" value={activeTab} onValueChange={(tab) => { setActiveTab(tab); setSelectedPayer(null); }} className="w-full">
             <TabsList>
                 <TabsTrigger value="all">All Claims</TabsTrigger>
                 <TabsTrigger value="attention">Attention Needed</TabsTrigger>
@@ -289,12 +293,13 @@ export default function ClaimsPage() {
             </TabsList>
             <TabsContent value={activeTab} className="mt-4 space-y-6">
                 <ARSummaryByInsurance 
+                    data={claimsForTab}
                     selectedPayer={selectedPayer}
                     onPayerSelect={handlePayerSelect}
                 />
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-semibold tracking-tight">
-                        {selectedPayer ? `Claims for ${selectedPayer}` : 'Claims List'}
+                        {selectedPayer ? `Claims for ${selectedPayer}` : `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Claims`}
                     </h2>
                     {selectedPayer && (
                         <Button variant="outline" onClick={() => setSelectedPayer(null)}>Show All Payers</Button>
