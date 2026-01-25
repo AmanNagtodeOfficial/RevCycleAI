@@ -26,10 +26,18 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
   const { data: practices, isLoading: practicesLoading } = useCollection<Practice>(practicesQuery);
 
   useEffect(() => {
-    if (practices && practices.length > 0 && !selectedPractice) {
+    // If practices have loaded and there's at least one
+    if (practices && practices.length > 0) {
+      // And if no practice is selected OR the selected one is no longer in the list
+      if (!selectedPractice || !practices.find(p => p.id === selectedPractice.id)) {
+        // Select the first one
         setSelectedPractice(practices[0]);
+      }
+    } else if (!practicesLoading && practices && practices.length === 0) {
+      // If loading is done and there are no practices, ensure selectedPractice is undefined.
+      setSelectedPractice(undefined);
     }
-  }, [practices, selectedPractice]);
+  }, [practices, selectedPractice, practicesLoading]);
 
   return (
     <PracticeContext.Provider value={{ selectedPractice, setSelectedPractice, practices, practicesLoading }}>

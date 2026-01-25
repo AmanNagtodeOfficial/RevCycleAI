@@ -49,6 +49,7 @@ import { useUser } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
 import { usePractice } from '@/context/practice-context';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const menuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -82,13 +83,41 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return name.substring(0, 2);
   }
 
-  if (!selectedPractice) {
+  if (practicesLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader className="h-8 w-8 animate-spin" />
             <p className="ml-2">Loading practice data...</p>
         </div>
     )
+  }
+
+  if (!selectedPractice) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle>No Practice Data Found</CardTitle>
+            <CardDescription>
+              Your database is empty. Please seed it with sample data to begin.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Go to{' '}
+              <Link
+                href="/settings"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Settings
+              </Link>
+              , navigate to the <strong>Account</strong> tab, and use the{' '}
+              <strong>Seed Data</strong> button.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
