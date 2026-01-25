@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "Practice": {
+      "title": "Practice",
+      "description": "A medical practice.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the practice." }
+      },
+      "required": ["name"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "A patient record.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "dob": { "type": "string", "format": "date" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "lastVisit": { "type": "string", "format": "date" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "zip": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "subscriberName": { "type": "string" },
+        "subscriberDob": { "type": "string", "format": "date" },
+        "subscriberRelationship": { "type": "string", "enum": ["Self", "Spouse", "Child", "Other"] },
+        "primaryInsuranceProvider": { "type": "string" },
+        "primaryInsuranceId": { "type": "string" },
+        "primaryInsuranceGroup": { "type": "string" },
+        "secondaryInsuranceProvider": { "type": "string" },
+        "secondaryInsuranceId": { "type": "string" },
+        "secondaryInsuranceGroup": { "type": "string" },
+        "practiceId": { "type": "string" }
+      }
+    },
+    "Claim": {
+      "title": "Claim",
+      "description": "A medical claim.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "patient": { "type": "string" },
+        "provider": { "type": "string" },
+        "payer": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Paid", "Denied", "Pending", "Submitted", "Scrubbing"] },
+        "date": { "type": "string", "format": "date-time" },
+        "dateOfService": { "type": "string", "format": "date-time" },
+        "denialReason": { "type": "string" },
+        "riskScore": { "type": "number" },
+        "procedure": { "type": "string" },
+        "diagnosis": { "type": "string" },
+        "lastActivity": { "type": "string", "format": "date-time" },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string" },
+              "date": { "type": "string" },
+              "user": { "type": "string" }
+            }
+          }
+        },
+        "aiSuggestions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "category": { "type": "string" },
+              "field": { "type": "string" },
+              "suggestion": { "type": "string" },
+              "actionType": { "type": "string" }
+            }
+          }
+        },
+        "submissionType": { "type": "string", "enum": ["EMC", "Paper"] },
+        "formType": { "type": "string", "enum": ["CMS 1500", "UB04"] },
+        "priority": { "type": "string", "enum": ["Primary", "Secondary", "Tertiary", "Non-Primary"] },
+        "claimCount": { "type": "number" },
+        "practiceId": { "type": "string" }
+      }
+    },
+    "Statement": {
+        "title": "Statement",
+        "description": "A patient billing statement.",
+        "type": "object",
+        "properties": {
+            "patientId": {"type": "string"},
+            "patientName": {"type": "string"},
+            "dateIssued": {"type": "string", "format": "date"},
+            "amountDue": {"type": "number"},
+            "status": {"type": "string", "enum": ["Paid", "Sent", "Overdue", "Draft"]},
+            "practiceId": {"type": "string"}
+        }
+    },
+    "Appointment": {
+        "title": "Appointment",
+        "description": "A patient appointment.",
+        "type": "object",
+        "properties": {
+            "patientId": {"type": "string"},
+            "patientName": {"type": "string"},
+            "date": {"type": "string", "format": "date"},
+            "time": {"type": "string", "format": "time"},
+            "provider": {"type": "string"},
+            "procedure": {"type": "string"},
+            "status": {"type": "string", "enum": ["Scheduled", "Checked In", "In Room", "Checked Out", "Cancelled", "No Show"]},
+            "room": {"type": "string"},
+            "notes": {"type": "string"},
+            "practiceId": {"type": "string"}
+        }
+    },
+    "InsurancePlan": {
+        "title": "InsurancePlan",
+        "description": "An insurance plan.",
+        "type": "object",
+        "properties": {
+            "payerName": {"type": "string"},
+            "planName": {"type": "string"},
+            "planType": {"type": "string", "enum": ["PPO", "HMO", "EPO", "POS"]},
+            "memberCount": {"type": "number"},
+            "totalClaims": {"type": "number"},
+            "timelyFilingLimit": {"type": "number"},
+            "claimsCorrectionLimit": {"type": "number"},
+            "status": {"type": "string", "enum": ["Active", "Terminated"]}
+        }
+    },
+    "Payment": {
+        "title": "Payment",
+        "description": "A payment record.",
+        "type": "object",
+        "properties": {
+            "claimId": {"type": "string"},
+            "payerName": {"type": "string"},
+            "paymentDate": {"type": "string", "format": "date"},
+            "amountPaid": {"type": "number"},
+            "remittanceCode": {"type": "string"},
+            "patientName": {"type": "string"},
+            "billedAmount": {"type": "number"},
+            "patientResponsibility": {"type": "number"},
+            "paymentMethod": {"type": "string", "enum": ["ERA", "Check"]},
+            "checkNumber": {"type": "string"},
+            "adjustments": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "reasonCode": {"type": "string"},
+                        "description": {"type": "string"},
+                        "amount": {"type": "number"}
+                    }
+                }
+            }
+        }
+    },
+    "RecentActivity": {
+        "title": "RecentActivity",
+        "description": "A log of recent activities.",
+        "type": "object",
+        "properties": {
+            "user": {"type": "string"},
+            "avatar": {"type": "string"},
+            "action": {"type": "string"},
+            "target": {"type": "string"},
+            "time": {"type": "string"},
+            "practiceId": {"type": "string"},
+            "createdAt": { "type": "string", "format": "date-time"}
+        }
+    }
+  },
+  "auth": {
+    "providers": ["email", "google.com"]
+  },
+  "firestore": {
+    "/practices/{practiceId}": { "schema": { "$ref": "#/entities/Practice" }, "description": "Stores medical practice information." },
+    "/patients/{patientId}": { "schema": { "$ref": "#/entities/Patient" }, "description": "Stores patient records." },
+    "/claims/{claimId}": { "schema": { "$ref": "#/entities/Claim" }, "description": "Stores medical claims." },
+    "/statements/{statementId}": { "schema": { "$ref": "#/entities/Statement" }, "description": "Stores patient billing statements." },
+    "/appointments/{appointmentId}": { "schema": { "$ref": "#/entities/Appointment" }, "description": "Stores patient appointments." },
+    "/insurancePlans/{planId}": { "schema": { "$ref": "#/entities/InsurancePlan" }, "description": "Stores insurance plan details." },
+    "/payments/{paymentId}": { "schema": { "$ref": "#/entities/Payment" }, "description": "Stores payment records." },
+    "/recentActivity/{activityId}": { "schema": { "$ref": "#/entities/RecentActivity" }, "description": "Stores recent activity logs." }
+  }
+}

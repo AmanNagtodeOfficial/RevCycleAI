@@ -1,5 +1,7 @@
 
 
+import { Timestamp } from "firebase/firestore";
+
 export type Claim = {
   id: string;
   patient: string;
@@ -8,13 +10,13 @@ export type Claim = {
   payer: string;
   amount: number;
   status: "Paid" | "Denied" | "Pending" | "Submitted" | "Scrubbing";
-  date: string;
-  dateOfService: string;
+  date: string | Timestamp;
+  dateOfService: string | Timestamp;
   denialReason?: string;
   riskScore?: number;
   procedure: string;
   diagnosis: string;
-  lastActivity: string;
+  lastActivity: string | Timestamp;
   history: { status: string; date: string; user: string }[];
   aiSuggestions?: {
     category: string;
@@ -37,7 +39,6 @@ export type Patient = {
   status: 'Active' | 'Inactive';
   lastVisit: string;
   
-  // Demographics
   address: string;
   city: string;
   state: string;
@@ -45,17 +46,14 @@ export type Patient = {
   phone: string;
   email: string;
 
-  // Subscriber Info
   subscriberName: string;
   subscriberDob: string;
   subscriberRelationship: 'Self' | 'Spouse' | 'Child' | 'Other';
 
-  // Primary Insurance
   primaryInsuranceProvider: string;
   primaryInsuranceId: string;
   primaryInsuranceGroup: string;
 
-  // Secondary Insurance (optional)
   secondaryInsuranceProvider?: string;
   secondaryInsuranceId?: string;
   secondaryInsuranceGroup?: string;
@@ -78,419 +76,21 @@ export type Practice = {
   name: string;
 };
 
-export const practices: Practice[] = [
-  { id: 'practice-1', name: 'General Hospital' },
-  { id: 'practice-2', name: 'Pediatrics Clinic' },
-  { id: 'practice-3', name: 'Cardiology Associates' },
-];
-
-export const claims: Claim[] = [
-  {
-    id: "C20240715001",
-    patient: "Eleanor Vance",
-    patientId: "P001",
-    provider: "Dr. Evelyn Reed",
-    payer: "Aetna",
-    amount: 1250.75,
-    status: "Paid",
-    date: "2024-07-15",
-    dateOfService: "2024-07-14",
-    riskScore: 10,
-    procedure: "99214 - Office Visit",
-    diagnosis: "R05 - Cough",
-    lastActivity: "2024-07-25",
-    history: [
-        { status: "Paid", date: "2024-07-25", user: "System" },
-        { status: "Submitted", date: "2024-07-15", user: "Admin" },
-    ],
-    submissionType: 'EMC',
-    formType: 'CMS 1500',
-    priority: 'Primary',
-    claimCount: 1,
-    practiceId: 'practice-1',
-  },
-  {
-    id: "C20240714002",
-    patient: "Marcus Thorne",
-    patientId: "P002",
-    provider: "Dr. Ben Carter",
-    payer: "Cigna",
-    amount: 850.0,
-    status: "Denied",
-    denialReason: "Medical Necessity",
-    date: "2024-07-14",
-    dateOfService: "2024-07-13",
-    riskScore: 92,
-    procedure: "88305 - Tissue Exam",
-    diagnosis: "D48.5 - Neoplasm",
-    lastActivity: "2024-07-24",
-    history: [
-        { status: "Denied", date: "2024-07-24", user: "Cigna" },
-        { status: "Submitted", date: "2024-07-14", user: "Admin" },
-    ],
-    aiSuggestions: [
-      {
-        category: "Coding",
-        field: "Procedure/Diagnosis",
-        suggestion: "Procedure code 88305 may not be supported by diagnosis D48.5 for this payer. Review payer policy for covered diagnoses for this procedure.",
-        actionType: "Review Codes"
-      },
-      {
-        category: "Documentation",
-        field: "Clinical Notes",
-        suggestion: "Ensure clinical notes explicitly state the reason for the tissue exam and support the medical necessity.",
-        actionType: "Verify Documentation"
-      }
-    ],
-    submissionType: 'EMC',
-    formType: 'CMS 1500',
-    priority: 'Primary',
-    claimCount: 1,
-    practiceId: 'practice-1',
-  },
-  {
-    id: "C20240712003",
-    patient: "Seraphina Moon",
-    patientId: "P003",
-    provider: "Dr. Evelyn Reed",
-    payer: "United Healthcare",
-    amount: 2300.0,
-    status: "Pending",
-    date: "2024-07-12",
-    dateOfService: "2024-07-11",
-    riskScore: 78,
-    procedure: "71046 - Chest X-Ray",
-    diagnosis: "J44.9 - COPD",
-    lastActivity: "2024-07-22",
-    history: [
-        { status: "Pending", date: "2024-07-22", user: "UHC" },
-        { status: "Submitted", date: "2024-07-12", user: "Admin" },
-    ],
-    submissionType: 'EMC',
-    formType: 'CMS 1500',
-    priority: 'Primary',
-    claimCount: 2,
-    practiceId: 'practice-1',
-  },
-  {
-    id: "C20240710004",
-    patient: "Julian Croft",
-    patientId: "P004",
-    provider: "Dr. Samira Khan",
-    payer: "BlueCross BlueShield",
-    amount: 450.25,
-    status: "Scrubbing",
-    date: "2024-07-10",
-    dateOfService: "2024-07-09",
-    riskScore: 35,
-    procedure: "99213 - Office Visit",
-    diagnosis: "M54.5 - Low back pain",
-    lastActivity: "2024-07-11",
-    history: [
-        { status: "Scrubbing", date: "2024-07-11", user: "AI System" },
-        { status: "Created", date: "2024-07-10", user: "Admin" },
-    ],
-    aiSuggestions: [
-        {
-            category: "Coding",
-            field: "Modifiers",
-            suggestion: "Consider adding modifier 25 if a separate E/M service was provided on the same day as another procedure.",
-            actionType: "Add Modifier"
-        }
-    ],
-    submissionType: 'Paper',
-    formType: 'CMS 1500',
-    priority: 'Secondary',
-    claimCount: 1,
-    practiceId: 'practice-2',
-  },
-  {
-    id: "C20240709005",
-    patient: "Isabella Chen",
-    patientId: "P005",
-    provider: "Dr. Ben Carter",
-    payer: "Humana",
-    amount: 1800.5,
-    status: "Paid",
-    date: "2024-07-09",
-    dateOfService: "2024-07-08",
-    riskScore: 5,
-    procedure: "93000 - EKG",
-    diagnosis: "I10 - Hypertension",
-    lastActivity: "2024-07-19",
-    history: [
-        { status: "Paid", date: "2024-07-19", user: "System" },
-        { status: "Submitted", date: "2024-07-09", user: "Admin" },
-    ],
-    submissionType: 'EMC',
-    formType: 'CMS 1500',
-    priority: 'Primary',
-    claimCount: 3,
-    practiceId: 'practice-2',
-  },
-   {
-    id: "C20240708006",
-    patient: "Liam O'Connell",
-    patientId: "P006",
-    provider: "Dr. Samira Khan",
-    payer: "Aetna",
-    amount: 760.0,
-    status: "Pending",
-    date: "2024-07-08",
-    dateOfService: "2024-07-07",
-    riskScore: 65,
-    procedure: "99396 - Preventive Visit",
-    diagnosis: "Z00.00 - Health Exam",
-    lastActivity: "2024-07-18",
-    history: [
-      { status: "Pending", date: "2024-07-18", user: "Aetna" },
-      { status: "Submitted", date: "2024-07-08", user: "Admin" },
-    ],
-    submissionType: 'Paper',
-    formType: 'CMS 1500',
-    priority: 'Primary',
-    claimCount: 1,
-    practiceId: 'practice-2',
-  },
-  {
-    id: "C20240705007",
-    patient: "Sophia Rodriguez",
-    patientId: "P007",
-    provider: "Dr. Evelyn Reed",
-    payer: "Cigna",
-    amount: 3100.0,
-    status: "Denied",
-    denialReason: "Payer Policy Mismatch",
-    date: "2024-07-05",
-    dateOfService: "2024-07-04",
-    riskScore: 85,
-    procedure: "27447 - Knee Replacement",
-    diagnosis: "M17.11 - Osteoarthritis",
-    lastActivity: "2024-07-15",
-    history: [
-      { status: "Denied", date: "2024-07-15", user: "Cigna" },
-      { status: "Submitted", date: "2024-07-05", user: "Admin" },
-    ],
-    submissionType: 'EMC',
-    formType: 'CMS 1500',
-    priority: 'Primary',
-    claimCount: 1,
-    practiceId: 'practice-3',
-  },
-  {
-    id: "C20240701008",
-    patient: "Kenji Tanaka",
-    patientId: "P008",
-    provider: "Dr. Ben Carter",
-    payer: "United Healthcare",
-    amount: 990.9,
-    status: "Paid",
-    date: "2024-07-01",
-    dateOfService: "2024-06-30",
-    riskScore: 12,
-    procedure: "99204 - New Patient Visit",
-    diagnosis: "E11.9 - Type 2 Diabetes",
-    lastActivity: "2024-07-10",
-    history: [
-        { status: "Paid", date: "2024-07-10", user: "System" },
-        { status: "Submitted", date: "2024-07-01", user: "Admin" },
-    ],
-    submissionType: 'Paper',
-    formType: 'CMS 1500',
-    priority: 'Tertiary',
-    claimCount: 2,
-    practiceId: 'practice-3',
-  },
-];
-
-export const patients: Patient[] = [
-  {
-    id: "P001",
-    name: "Eleanor Vance",
-    dob: "1985-05-22",
-    gender: "Female",
-    status: "Active",
-    lastVisit: "2024-07-15",
-    address: "123 Wellness Way",
-    city: "Healthville",
-    state: "CA",
-    zip: "90210",
-    phone: "555-123-4567",
-    email: "eleanor.vance@example.com",
-    subscriberName: "Eleanor Vance",
-    subscriberDob: "1985-05-22",
-    subscriberRelationship: "Self",
-    primaryInsuranceProvider: "Aetna",
-    primaryInsuranceId: "AET123456789",
-    primaryInsuranceGroup: "GRP-XYZ1",
-    secondaryInsuranceProvider: "Cigna",
-    secondaryInsuranceId: "CIG-SEC-987",
-    secondaryInsuranceGroup: "GRP-SEC-ABC",
-    practiceId: 'practice-1',
-  },
-  {
-    id: "P002",
-    name: "Marcus Thorne",
-    dob: "1978-11-03",
-    gender: "Male",
-    status: "Active",
-    lastVisit: "2024-07-14",
-    address: "456 Recovery Road",
-    city: "Metropolis",
-    state: "NY",
-    zip: "10001",
-    phone: "555-987-6543",
-    email: "marcus.thorne@example.com",
-    subscriberName: "Marcus Thorne",
-    subscriberDob: "1978-11-03",
-    subscriberRelationship: "Self",
-    primaryInsuranceProvider: "Cigna",
-    primaryInsuranceId: "CIG987654321",
-    primaryInsuranceGroup: "GRP-QWE3",
-    practiceId: 'practice-1',
-  },
-  {
-    id: "P003",
-    name: "Seraphina Moon",
-    dob: "1992-02-14",
-    gender: "Female",
-    status: "Active",
-    lastVisit: "2024-07-12",
-    address: "789 Serenity Lane",
-    city: "Starfall",
-    state: "TX",
-    zip: "75001",
-    phone: "555-246-8135",
-    email: "seraphina.moon@example.com",
-    subscriberName: "Julian Moon",
-    subscriberDob: "1990-01-01",
-    subscriberRelationship: "Spouse",
-    primaryInsuranceProvider: "United Healthcare",
-    primaryInsuranceId: "UHC246813579",
-    primaryInsuranceGroup: "GRP-RTY4",
-    practiceId: 'practice-1',
-  },
-  {
-    id: "P004",
-    name: "Julian Croft",
-    dob: "1965-09-30",
-    gender: "Male",
-    status: "Active",
-    lastVisit: "2024-07-10",
-    address: "101 Adventure Ave",
-    city: "Explorers Hub",
-    state: "FL",
-    zip: "33101",
-    phone: "555-135-7924",
-    email: "julian.croft@example.com",
-    subscriberName: "Julian Croft",
-    subscriberDob: "1965-09-30",
-    subscriberRelationship: "Self",
-    primaryInsuranceProvider: "BlueCross BlueShield",
-    primaryInsuranceId: "BCBS135792468",
-    primaryInsuranceGroup: "GRP-UIO5",
-    practiceId: 'practice-2',
-  },
-  {
-    id: "P005",
-    name: "Isabella Chen",
-    dob: "2001-03-18",
-    gender: "Female",
-    status: "Inactive",
-    lastVisit: "2024-07-09",
-    address: "222 Innovation Drive",
-    city: "Tech Park",
-    state: "WA",
-    zip: "98101",
-    phone: "555-555-4443",
-    email: "isabella.chen@example.com",
-    subscriberName: "David Chen",
-    subscriberDob: "1975-10-10",
-    subscriberRelationship: "Child",
-    primaryInsuranceProvider: "Humana",
-    primaryInsuranceId: "HUM555444333",
-    primaryInsuranceGroup: "GRP-PAS6",
-    practiceId: 'practice-2',
-  },
-  {
-    id: "P006",
-    name: "Liam O'Connell",
-    dob: "1988-07-07",
-    gender: "Male",
-    status: "Active",
-    lastVisit: "2024-07-08",
-    address: "333 Clover Court",
-    city: "Dublin",
-    state: "OH",
-    zip: "43016",
-    phone: "555-998-8776",
-    email: "liam.oconnell@example.com",
-    subscriberName: "Liam O'Connell",
-    subscriberDob: "1988-07-07",
-    subscriberRelationship: "Self",
-    primaryInsuranceProvider: "Aetna",
-    primaryInsuranceId: "AET998877665",
-    primaryInsuranceGroup: "GRP-DFG7",
-    practiceId: 'practice-2',
-  },
-  {
-    id: "P007",
-    name: "Sophia Rodriguez",
-    dob: "1955-12-25",
-    gender: "Female",
-    status: "Active",
-    lastVisit: "2024-07-05",
-    address: "777 Sunshine Blvd",
-    city: "Golden City",
-    state: "AZ",
-    zip: "85001",
-    phone: "555-112-2334",
-    email: "sophia.rodriguez@example.com",
-    subscriberName: "Sophia Rodriguez",
-    subscriberDob: "1955-12-25",
-    subscriberRelationship: "Self",
-    primaryInsuranceProvider: "Cigna",
-    primaryInsuranceId: "CIG112233445",
-    primaryInsuranceGroup: "GRP-HJK8",
-    practiceId: 'practice-3',
-  },
-  {
-    id: "P008",
-    name: "Kenji Tanaka",
-    dob: "1995-08-15",
-    gender: "Male",
-    status: "Inactive",
-    lastVisit: "2024-07-01",
-    address: "888 Blossom Lane",
-    city: "Sakura Valley",
-    state: "OR",
-    zip: "97201",
-    phone: "555-777-8889",
-    email: "kenji.tanaka@example.com",
-    subscriberName: "Kenji Tanaka",
-    subscriberDob: "1995-08-15",
-    subscriberRelationship: "Self",
-    primaryInsuranceProvider: "United Healthcare",
-    primaryInsuranceId: "UHC777888999",
-    primaryInsuranceGroup: "GRP-LKM9",
-    practiceId: 'practice-3',
-  },
-];
-
-
-export const statements: Statement[] = [
-    { id: 'STMT-001', patientId: 'P001', patientName: 'Eleanor Vance', dateIssued: '2024-07-20', amountDue: 50.00, status: 'Paid', practiceId: 'practice-1' },
-    { id: 'STMT-002', patientId: 'P002', patientName: 'Marcus Thorne', dateIssued: '2024-07-21', amountDue: 150.00, status: 'Overdue', practiceId: 'practice-1' },
-    { id: 'STMT-003', patientId: 'P003', patientName: 'Seraphina Moon', dateIssued: '2024-07-22', amountDue: 75.50, status: 'Sent', practiceId: 'practice-1' },
-    { id: 'STMT-004', patientId: 'P004', patientName: 'Julian Croft', dateIssued: '2024-07-23', amountDue: 25.00, status: 'Paid', practiceId: 'practice-2' },
-    { id: 'STMT-005', patientId: 'P006', patientName: "Liam O'Connell", dateIssued: '2024-07-24', amountDue: 200.00, status: 'Sent', practiceId: 'practice-2' },
-    { id: 'STMT-006', patientId: 'P007', patientName: 'Sophia Rodriguez', dateIssued: '2024-07-25', amountDue: 300.00, status: 'Draft', practiceId: 'practice-3' },
-    { id: 'STMT-007', patientId: 'P008', patientName: 'Kenji Tanaka', dateIssued: '2024-07-26', amountDue: 120.00, status: 'Overdue', practiceId: 'practice-3' },
-];
+export type RecentActivity = {
+    id: string;
+    user: string;
+    avatar: string;
+    action: string;
+    target: string;
+    time: string;
+    practiceId: string;
+    createdAt: Timestamp;
+}
 
 export type Appointment = {
   id: string;
   patientId: string;
+  patientName: string;
   date: string;
   time: string;
   provider: string;
@@ -501,13 +101,8 @@ export type Appointment = {
   practiceId: string;
 };
 
-export const appointments: Appointment[] = [
-    { id: 'APP-001', patientId: 'P001', date: '2024-08-01', time: '10:00 AM', provider: 'Dr. Evelyn Reed', procedure: 'Follow-Up Visit', status: 'Scheduled', room: 'Consultation Room 1', practiceId: 'practice-1' },
-    { id: 'APP-002', patientId: 'P001', date: '2024-07-15', time: '09:30 AM', provider: 'Dr. Evelyn Reed', procedure: 'Office Visit', status: 'Checked Out', room: 'Consultation Room 1', practiceId: 'practice-1' },
-    { id: 'APP-003', patientId: 'P002', date: '2024-08-05', time: '11:00 AM', provider: 'Dr. Ben Carter', procedure: 'Initial Consultation', status: 'Scheduled', room: 'Exam Room 3', practiceId: 'practice-1' },
-    { id: 'APP-004', patientId: 'P003', date: '2024-07-12', time: '02:00 PM', provider: 'Dr. Evelyn Reed', procedure: 'X-Ray review', status: 'Checked Out', room: 'Consultation Room 2', practiceId: 'practice-1' },
-    { id: 'APP-005', patientId: 'P004', date: '2024-07-10', time: '09:00 AM', provider: 'Dr. Samira Khan', procedure: 'Physical Therapy', status: 'No Show', room: 'Therapy Room A', practiceId: 'practice-2' },
-    { id: 'APP-006', patientId: 'P004', date: '2024-06-20', time: '01:00 PM', provider: 'Dr. Samira Khan', procedure: 'Routine Checkup', status: 'Checked Out', room: 'Consultation Room 1', notes: 'Patient feels great, no new issues.', practiceId: 'practice-2' },
-    { id: 'APP-007', patientId: 'P007', date: '2024-07-14', time: '09:00 AM', provider: 'Dr. Ben Carter', procedure: 'Pre-op assessment', status: 'Checked Out', room: 'Exam Room 3', practiceId: 'practice-3' },
-    { id: 'APP-008', patientId: 'P008', date: '2024-07-09', time: '03:30 PM', provider: 'Dr. Ben Carter', procedure: 'Blood test follow-up', status: 'Checked Out', room: 'Consultation Room 4', practiceId: 'practice-3' },
-];
+export const practices: Practice[] = [];
+export const claims: Claim[] = [];
+export const patients: Patient[] = [];
+export const statements: Statement[] = [];
+export const appointments: Appointment[] = [];

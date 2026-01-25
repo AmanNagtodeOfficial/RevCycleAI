@@ -31,6 +31,7 @@ import {
   Briefcase,
   CalendarDays,
   Building,
+  Loader,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,6 @@ import {
 import { useUser } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
-import { practices } from '@/lib/data';
 import { usePractice } from '@/context/practice-context';
 
 const menuItems = [
@@ -67,7 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const app = useFirebaseApp();
   const auth = getAuth(app);
-  const { selectedPractice, setSelectedPractice } = usePractice();
+  const { selectedPractice, setSelectedPractice, practices, practicesLoading } = usePractice();
 
   const handleLogout = () => {
     auth.signOut();
@@ -80,6 +80,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         return `${parts[0][0]}${parts[parts.length - 1][0]}`;
     }
     return name.substring(0, 2);
+  }
+
+  if (!selectedPractice) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader className="h-8 w-8 animate-spin" />
+            <p className="ml-2">Loading practice data...</p>
+        </div>
+    )
   }
 
   return (
@@ -136,16 +145,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Building className="h-4 w-4 text-muted-foreground" />
+                <Button variant="outline" className="flex items-center gap-2" disabled={practicesLoading}>
+                  {practicesLoading ? <Loader className="h-4 w-4 animate-spin" /> : <Building className="h-4 w-4 text-muted-foreground" />}
                   <span className="hidden sm:inline">{selectedPractice.name}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Switch Practice</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={selectedPractice.id} onValueChange={(id) => setSelectedPractice(practices.find(p => p.id === id)!)}>
-                  {practices.map((practice) => (
+                <DropdownMenuRadioGroup value={selectedPractice.id} onValueChange={(id) => setSelectedPractice(practices?.find(p => p.id === id)!)}>
+                  {practices?.map((practice) => (
                     <DropdownMenuRadioItem key={practice.id} value={practice.id} className="cursor-pointer">
                       {practice.name}
                     </DropdownMenuRadioItem>
