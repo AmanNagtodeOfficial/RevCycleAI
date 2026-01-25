@@ -1,3 +1,4 @@
+
 export type Claim = {
   id: string;
   patient: string;
@@ -453,4 +454,27 @@ export const statements: Statement[] = [
     { id: 'STMT-005', patientId: 'P006', patientName: "Liam O'Connell", dateIssued: '2024-07-24', amountDue: 200.00, status: 'Sent' },
     { id: 'STMT-006', patientId: 'P007', patientName: 'Sophia Rodriguez', dateIssued: '2024-07-25', amountDue: 300.00, status: 'Draft' },
     { id: 'STMT-007', patientId: 'P008', patientName: 'Kenji Tanaka', dateIssued: '2024-07-26', amountDue: 120.00, status: 'Overdue' },
+];
+
+export type Appointment = {
+  id: string;
+  patientId: string;
+  date: string;
+  time: string;
+  provider: string;
+  procedure: string;
+  status: "Scheduled" | "Checked In" | "In Room" | "Checked Out" | "Cancelled" | "No Show";
+  room: string;
+  notes?: string;
+};
+
+export const appointments: Appointment[] = [
+    { id: 'APP-001', patientId: 'P001', date: '2024-08-01', time: '10:00 AM', provider: 'Dr. Evelyn Reed', procedure: 'Follow-Up Visit', status: 'Scheduled', room: 'Consultation Room 1' },
+    { id: 'APP-002', patientId: 'P001', date: '2024-07-15', time: '09:30 AM', provider: 'Dr. Evelyn Reed', procedure: 'Office Visit', status: 'Checked Out', room: 'Consultation Room 1' },
+    { id: 'APP-003', patientId: 'P002', date: '2024-08-05', time: '11:00 AM', provider: 'Dr. Ben Carter', procedure: 'Initial Consultation', status: 'Scheduled', room: 'Exam Room 3' },
+    { id: 'APP-004', patientId: 'P003', date: '2024-07-12', time: '02:00 PM', provider: 'Dr. Evelyn Reed', procedure: 'X-Ray review', status: 'Checked Out', room: 'Consultation Room 2' },
+    { id: 'APP-005', patientId: 'P004', date: '2024-07-10', time: '09:00 AM', provider: 'Dr. Samira Khan', procedure: 'Physical Therapy', status: 'No Show', room: 'Therapy Room A' },
+    { id: 'APP-006', patientId: 'P001', date: '2024-06-20', time: '01:00 PM', provider: 'Dr. Evelyn Reed', procedure: 'Routine Checkup', status: 'Checked Out', room: 'Consultation Room 1', notes: 'Patient feels great, no new issues.' },
+    { id: 'APP-007', patientId: 'P002', date: '2024-07-14', time: '09:00 AM', provider: 'Dr. Ben Carter', procedure: 'Pre-op assessment', status: 'Checked Out', room: 'Exam Room 3' },
+    { id: 'APP-008', patientId: 'P005', date: '2024-07-09', time: '03:30 PM', provider: 'Dr. Ben Carter', procedure: 'Blood test follow-up', status: 'Checked Out', room: 'Consultation Room 4' },
 ];
