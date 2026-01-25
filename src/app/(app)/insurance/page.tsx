@@ -1,3 +1,6 @@
+
+'use client';
+
 import { insurancePlans } from "@/lib/insurance-data"
 import { columns } from "./columns"
 import { DataTable } from "@/components/data-table"
@@ -12,7 +15,7 @@ import {
 } from "@/components/ui/card"
 import { Briefcase, Users, UserPlus, CheckCircle } from "lucide-react"
 
-export default async function InsurancePage() {
+export default function InsurancePage() {
   const data = insurancePlans;
 
   const stats = {

@@ -1,3 +1,6 @@
+
+'use client';
+
 import { PageHeader } from "@/components/page-header";
 import { PlaceholderPage } from "@/components/placeholder-page";
 

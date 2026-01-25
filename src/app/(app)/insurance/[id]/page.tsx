@@ -1,3 +1,6 @@
+
+'use client';
+
 import { PageHeader } from "@/components/page-header";
 import { insurancePlans } from "@/lib/insurance-data";
 import { claims } from "@/lib/data";

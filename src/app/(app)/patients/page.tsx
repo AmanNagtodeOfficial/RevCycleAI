@@ -1,3 +1,6 @@
+
+'use client';
+
 import { patients } from "@/lib/data"
 import { columns } from "./columns"
 import { DataTable } from "@/components/data-table"
@@ -12,7 +15,7 @@ import {
 } from "@/components/ui/card"
 import { Users, UserPlus, UserCheck, UserX } from "lucide-react"
 
-export default async function PatientsPage() {
+export default function PatientsPage() {
   const data = patients;
 
   const stats = {
