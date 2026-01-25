@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,9 +38,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useUser } from '@/firebase';
+import { getAuth } from 'firebase/auth';
+import { useFirebaseApp } from '@/firebase';
 
 const menuItems = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Claims', href: '/claims', icon: FileText },
   { name: 'Patients', href: '/patients', icon: Users },
   { name: 'Insurance', href: '/insurance', icon: Briefcase },
@@ -53,6 +55,22 @@ const menuItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useUser();
+  const app = useFirebaseApp();
+  const auth = getAuth(app);
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
+  
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1 && parts[1]) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`;
+    }
+    return name.substring(0, 2);
+  }
 
   return (
     <SidebarProvider>
@@ -72,7 +90,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.name}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
+                    isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                     tooltip={{ children: item.name }}
                   >
                     <item.icon />
@@ -103,26 +121,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="flex h-16 items-center justify-between p-4 border-b bg-card">
             <div className="flex items-center gap-4">
                  <SidebarTrigger className="md:hidden" />
-                 <h1 className="text-xl font-semibold hidden md:block">Welcome back, Admin</h1>
+                 <h1 className="text-xl font-semibold hidden md:block">Welcome back, {user?.displayName?.split(' ')[0] || 'Admin'}</h1>
             </div>
           <div className="flex items-center gap-4">
-             <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                    <AvatarImage src="https://picsum.photos/seed/user/100/100" data-ai-hint="profile picture" />
-                    <AvatarFallback>AD</AvatarFallback>
+                    <AvatarImage src={user?.photoURL || ''} />
+                    <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                     </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Admin User</p>
-                    <p className="text-xs leading-none text-muted-foreground">admin@revcycle.ai</p>
+                    <p className="text-sm font-medium leading-none">{user?.displayName || 'Anonymous User'}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user?.email || ''}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -131,7 +146,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
