@@ -183,7 +183,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                         <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                         <Button type="submit" disabled={isSaving || !selectedFile}>
                             {isSaving ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
-                            Commit to Database
+                            Upload
                         </Button>
                     </DialogFooter>
                 </form>
