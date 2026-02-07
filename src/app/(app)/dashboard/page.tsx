@@ -1,10 +1,9 @@
-
 'use client'
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, FileText, Percent, TrendingUp, CheckCircle, XCircle, Activity } from 'lucide-react';
+import { DollarSign, FileText, CheckCircle, XCircle, Loader } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,58 +15,97 @@ import {
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
-import { claims } from '@/lib/data';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePractice } from '@/context/practice-context';
-
-const revenueData = [
-    { month: 'Jan', revenue: 100, forecast: 90 },
-    { month: 'Feb', revenue: 120, forecast: 110 },
-    { month: 'Mar', revenue: 150, forecast: 140 },
-    { month: 'Apr', revenue: 130, forecast: 135 },
-    { month: 'May', revenue: 180, forecast: 170 },
-    { month: 'Jun', revenue: 210, forecast: 200 },
-    { month: 'Jul', revenue: 240, forecast: 250 },
-]
-
-const recentActivity = [
-    { id: 1, user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'submitted claim', target: 'C20240715001', time: '2h ago', practiceId: 'practice-1' },
-    { id: 2, user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'flagged claim for review', target: 'C20240714002', time: '3h ago', practiceId: 'practice-1' },
-    { id: 3, user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'updated patient info for', target: 'Seraphina Moon', time: '5h ago', practiceId: 'practice-1' },
-    { id: 4, user: 'System', avatar: 'https://picsum.photos/seed/sys/40/40', action: 'received payment for claim', target: 'C20240709005', time: '1d ago', practiceId: 'practice-2' },
-    { id: 5, user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'identified scrubbing issue on', target: 'C20240710004', time: '2d ago', practiceId: 'practice-2' },
-]
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { Claim, RecentActivity } from '@/lib/data';
 
 export default function DashboardPage() {
   const { selectedPractice } = usePractice();
-  
-  const practiceClaims = React.useMemo(() => claims.filter(c => c.practiceId === selectedPractice.id), [selectedPractice]);
+  const firestore = useFirestore();
 
-  const kpiData = React.useMemo(() => {
-    const totalCollections = practiceClaims.filter(c => c.status === 'Paid').reduce((sum, c) => sum + c.amount, 0);
-    const cleanClaims = practiceClaims.filter(c => c.riskScore && c.riskScore <= 20).length;
-    const cleanClaimRate = practiceClaims.length > 0 ? (cleanClaims / practiceClaims.length) * 100 : 0;
-    const deniedClaims = practiceClaims.filter(c => c.status === 'Denied').length;
-    const denialRate = practiceClaims.length > 0 ? (deniedClaims / practiceClaims.length) * 100 : 0;
+  // Real-time Claims
+  const claimsQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(
+      collection(firestore, 'claims'),
+      where('practiceId', '==', selectedPractice.id)
+    );
+  }, [firestore, selectedPractice]);
+  const { data: claims, isLoading: claimsLoading } = useCollection<Claim>(claimsQuery);
+
+  // Real-time Recent Activity
+  const activityQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(
+      collection(firestore, 'recentActivity'),
+      where('practiceId', '==', selectedPractice.id),
+      orderBy('createdAt', 'desc'),
+      limit(5)
+    );
+  }, [firestore, selectedPractice]);
+  const { data: activity, isLoading: activityLoading } = useCollection<RecentActivity>(activityQuery);
+
+  // Derived KPI Data
+  const kpiData = useMemo(() => {
+    if (!claims) return [];
+    
+    const totalCollections = claims
+      .filter(c => c.status === 'Paid')
+      .reduce((sum, c) => sum + c.amount, 0);
+    
+    const cleanClaims = claims.filter(c => c.riskScore !== undefined && c.riskScore <= 20).length;
+    const cleanClaimRate = claims.length > 0 ? (cleanClaims / claims.length) * 100 : 0;
+    
+    const deniedClaims = claims.filter(c => c.status === 'Denied').length;
+    const denialRate = claims.length > 0 ? (deniedClaims / claims.length) * 100 : 0;
     
     // Simplified Days in A/R calculation
-    const outstandingClaims = practiceClaims.filter(c => c.status !== 'Paid');
+    const outstandingClaims = claims.filter(c => c.status !== 'Paid');
     const totalOutstandingAmount = outstandingClaims.reduce((sum, c) => sum + c.amount, 0);
-    const avgDailyCharges = practiceClaims.reduce((sum, c) => sum + c.amount, 0) / 30;
+    const totalBilled = claims.reduce((sum, c) => sum + c.amount, 0);
+    const avgDailyCharges = totalBilled / 30;
     const daysInAR = avgDailyCharges > 0 ? totalOutstandingAmount / avgDailyCharges : 0;
 
     return [
-      { title: 'Net Collections', value: `$${(totalCollections / 1000).toFixed(0)}K`, change: '+12.5%', Icon: DollarSign, changeType: 'positive' },
+      { title: 'Net Collections', value: `$${(totalCollections / 1000).toFixed(1)}K`, change: '+12.5%', Icon: DollarSign, changeType: 'positive' },
       { title: 'Clean Claim Rate', value: `${cleanClaimRate.toFixed(1)}%`, change: '+1.5%', Icon: CheckCircle, changeType: 'positive' },
       { title: 'Denial Rate', value: `${denialRate.toFixed(1)}%`, change: '-2.1%', Icon: XCircle, changeType: 'negative' },
       { title: 'Days in A/R', value: `${daysInAR.toFixed(0)}`, change: '-3 days', Icon: FileText, changeType: 'positive' },
     ];
-  }, [practiceClaims]);
+  }, [claims]);
 
-  const atRiskClaims = React.useMemo(() => practiceClaims.filter(c => c.riskScore && c.riskScore > 60).sort((a,b) => (b.riskScore || 0) - (a.riskScore || 0)).slice(0, 5), [practiceClaims]);
-  
-  const practiceActivity = React.useMemo(() => recentActivity.filter(a => a.practiceId === selectedPractice.id), [selectedPractice]);
+  // Derived Revenue Analytics (Mocking the monthly split based on real totals for visualization)
+  const revenueData = useMemo(() => {
+    if (!claims) return [];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+    const totalPaid = claims.filter(c => c.status === 'Paid').reduce((sum, c) => sum + c.amount, 0) / 1000;
+    
+    // Just a basic distribution for the chart
+    return months.map((month, idx) => ({
+      month,
+      revenue: (totalPaid / months.length) * (idx + 1) * 0.8,
+      forecast: (totalPaid / months.length) * (idx + 1)
+    }));
+  }, [claims]);
+
+  const atRiskClaims = useMemo(() => {
+    if (!claims) return [];
+    return claims
+      .filter(c => c.riskScore !== undefined && c.riskScore > 60)
+      .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
+      .slice(0, 5);
+  }, [claims]);
+
+  if (claimsLoading || activityLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -136,24 +174,27 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest updates for {selectedPractice.name}.</CardDescription>
+                <CardDescription>Latest updates for {selectedPractice?.name}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {practiceActivity.map(activity => (
-                        <div key={activity.id} className="flex items-start gap-3">
+                    {activity?.map(act => (
+                        <div key={act.id} className="flex items-start gap-3">
                             <Avatar className="h-8 w-8 border">
-                                <AvatarImage src={activity.avatar} />
-                                <AvatarFallback>{activity.user.substring(0,2)}</AvatarFallback>
+                                <AvatarImage src={act.avatar} />
+                                <AvatarFallback>{act.user.substring(0,2)}</AvatarFallback>
                             </Avatar>
                             <div className="text-sm">
                                 <p className="text-muted-foreground">
-                                    <span className="font-medium text-foreground">{activity.user}</span> {activity.action} <Link href="#" className="font-medium text-primary hover:underline">{activity.target}</Link>
+                                    <span className="font-medium text-foreground">{act.user}</span> {act.action} <span className="font-medium text-primary">{act.target}</span>
                                 </p>
-                                <p className="text-xs text-muted-foreground">{activity.time}</p>
+                                <p className="text-xs text-muted-foreground">{act.time}</p>
                             </div>
                         </div>
                     ))}
+                    {(!activity || activity.length === 0) && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No recent activity found.</p>
+                    )}
                 </div>
             </CardContent>
         </Card>
