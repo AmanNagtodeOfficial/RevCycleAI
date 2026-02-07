@@ -21,7 +21,7 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2 } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
@@ -56,14 +56,21 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
 
         setIsSaving(true);
         const formData = new FormData(event.currentTarget);
+        const name = formData.get('name') as string;
         
+        // Mock logic to determine URL based on "file" selection
+        const isImage = name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
+        const url = isImage 
+            ? `https://picsum.photos/seed/${Date.now()}/800/600`
+            : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+
         const newDoc = {
             patientId,
             practiceId,
-            name: formData.get('name') as string,
+            name: name,
             category: formData.get('category'),
             dateUploaded: serverTimestamp(),
-            url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+            url: url
         };
 
         try {
@@ -72,7 +79,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
             await addDoc(collection(firestore, 'recentActivity'), {
                 user: 'Admin',
                 avatar: 'https://picsum.photos/seed/admin/40/40',
-                action: 'uploaded a new PDF document for',
+                action: 'uploaded a new document for',
                 target: patientName,
                 time: 'Just now',
                 practiceId: practiceId,
@@ -96,12 +103,12 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Add Patient Document</DialogTitle>
-                        <DialogDescription>Attach a new PDF record or file to this patient's profile.</DialogDescription>
+                        <DialogDescription>Attach a new PDF record or Image file to this patient's profile.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="doc-name">Document Name</Label>
-                            <Input id="doc-name" name="name" placeholder="e.g., Blood Test Results" required />
+                            <Label htmlFor="doc-name">Document Name (with extension)</Label>
+                            <Input id="doc-name" name="name" placeholder="e.g., Blood Test Results.pdf or ID_Card.png" required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="doc-category">Category</Label>
@@ -118,9 +125,9 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="doc-file">Select PDF File</Label>
-                            <Input id="doc-file" type="file" accept=".pdf" className="cursor-pointer" />
-                            <p className="text-[10px] text-muted-foreground">Note: For this prototype, all uploads will link to a sample PDF.</p>
+                            <Label htmlFor="doc-file">Select File (PDF or Image)</Label>
+                            <Input id="doc-file" type="file" accept=".pdf,image/*" className="cursor-pointer" />
+                            <p className="text-[10px] text-muted-foreground">Note: In this prototype, uploads link to sample files based on name extension.</p>
                         </div>
                     </div>
                     <DialogFooter>
@@ -140,6 +147,11 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
     const [filter, setFilter] = useState<string>('all');
     const [search, setSearch] = useState('');
     const firestore = useFirestore();
+
+    const isImage = (name: string) => {
+        const ext = name.split('.').pop()?.toLowerCase();
+        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
+    };
 
     const filteredDocs = useMemo(() => {
         let result = documents || [];
@@ -217,38 +229,45 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
 
             <div className="grid gap-4">
                 {filteredDocs.length > 0 ? (
-                    filteredDocs.map((doc) => (
-                        <Card key={doc.id}>
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-2 bg-muted rounded-lg">
-                                        <FileText className="h-6 w-6 text-destructive" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium">{doc.name}</p>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
-                                            <span>•</span>
-                                            <span>Format: PDF</span>
-                                            <span>•</span>
-                                            <span>Uploaded on {formatDate(doc.dateUploaded)}</span>
+                    filteredDocs.map((doc) => {
+                        const isImg = isImage(doc.name);
+                        return (
+                            <Card key={doc.id}>
+                                <CardContent className="p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2 bg-muted rounded-lg">
+                                            {isImg ? (
+                                                <ImageIcon className="h-6 w-6 text-primary" />
+                                            ) : (
+                                                <FileText className="h-6 w-6 text-destructive" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium">{doc.name}</p>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
+                                                <span>•</span>
+                                                <span>Format: {isImg ? 'Image' : 'PDF'}</span>
+                                                <span>•</span>
+                                                <span>Uploaded on {formatDate(doc.dateUploaded)}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" asChild>
-                                        <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-4 w-4 mr-2" />
-                                            View PDF
-                                        </a>
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.name)}>
-                                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" size="sm" asChild>
+                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                <ExternalLink className="h-4 w-4 mr-2" />
+                                                View {isImg ? 'Image' : 'PDF'}
+                                            </a>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.name)}>
+                                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })
                 ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg">
                         <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
