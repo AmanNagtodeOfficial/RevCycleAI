@@ -1,22 +1,33 @@
+
 'use client'
 
 import React from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { claims } from "@/lib/data";
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { usePractice } from '@/context/practice-context';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { Claim } from '@/lib/data';
+import { Loader } from 'lucide-react';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function AnalyticsPage() {
     const { selectedPractice } = usePractice();
+    const firestore = useFirestore();
 
-    const practiceClaims = React.useMemo(() => claims.filter(c => c.practiceId === selectedPractice.id), [selectedPractice]);
+    const claimsQuery = React.useMemo(() => {
+        if (!firestore || !selectedPractice) return null;
+        return query(collection(firestore, 'claims'), where('practiceId', '==', selectedPractice.id));
+    }, [firestore, selectedPractice]);
+
+    const { data: practiceClaims, isLoading } = useCollection<Claim>(claimsQuery);
     
     // Aggregate data for charts
     const claimStatusChartData = React.useMemo(() => {
+        if (!practiceClaims) return [];
         const data = practiceClaims.reduce((acc, claim) => {
             acc[claim.status] = (acc[claim.status] || 0) + 1;
             return acc;
@@ -26,6 +37,7 @@ export default function AnalyticsPage() {
 
 
     const denialChartData = React.useMemo(() => {
+        if (!practiceClaims) return [];
         const data = practiceClaims.filter(c => c.status === 'Denied' && c.denialReason).reduce((acc, claim) => {
             acc[claim.denialReason!] = (acc[claim.denialReason!] || 0) + 1;
             return acc;
@@ -34,6 +46,7 @@ export default function AnalyticsPage() {
     }, [practiceClaims]);
 
     const payerTableData = React.useMemo(() => {
+        if (!practiceClaims) return [];
         const data = practiceClaims.reduce((acc, claim) => {
             if (!acc[claim.payer]) {
                 acc[claim.payer] = { name: claim.payer, total: 0, paid: 0, denied: 0, totalAmount: 0 };
@@ -51,9 +64,13 @@ export default function AnalyticsPage() {
         }));
     }, [practiceClaims]);
 
+    if (isLoading) {
+        return <div className="flex h-[80vh] items-center justify-center"><Loader className="h-8 w-8 animate-spin text-primary" /></div>;
+    }
+
     return (
         <div className="space-y-6">
-            <PageHeader title="Analytics Dashboard" description={`Insights for ${selectedPractice.name}.`} />
+            <PageHeader title="Analytics Dashboard" description={`Insights for ${selectedPractice?.name || 'Medical Practice'}.`} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
@@ -121,6 +138,11 @@ export default function AnalyticsPage() {
                                         <td className="p-2"><Badge variant="destructive">{payer.denialRate}</Badge></td>
                                     </tr>
                                 ))}
+                                {payerTableData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="p-4 text-center text-muted-foreground">No data available for this practice.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

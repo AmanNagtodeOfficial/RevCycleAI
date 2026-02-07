@@ -1,17 +1,20 @@
 
 'use client'
 import { PageHeader } from "@/components/page-header";
-import { claims } from "@/lib/data";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, FileText, Lightbulb, Loader, User, DollarSign, Calendar, Stethoscope, Briefcase, FileWarning, Wrench } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useFirestore, useDoc } from "@/firebase";
+import { doc, Timestamp } from "firebase/firestore";
+import { useMemo } from "react";
+import { Claim } from "@/lib/data";
 
-const getStatusBadge = (status: (typeof claims)[0]["status"]) => {
+const getStatusBadge = (status: Claim["status"]) => {
   switch (status) {
     case "Paid":
       return <Badge className="bg-success text-success-foreground hover:bg-success/80">{status}</Badge>
@@ -43,20 +46,38 @@ const getTimelineIcon = (status: string) => {
     }
 }
 
-export default function ClaimDetailPage({ params }: { params: { id: string } }) {
-  const claim = claims.find(c => c.id === params.id);
+export default function ClaimDetailPage() {
+  const { id } = useParams() as { id: string };
+  const firestore = useFirestore();
+
+  const claimRef = useMemo(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'claims', id);
+  }, [firestore, id]);
+
+  const { data: claim, isLoading } = useDoc<Claim>(claimRef);
+
+  if (isLoading) {
+    return <div className="flex h-[80vh] items-center justify-center"><Loader className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   if (!claim) {
     notFound();
   }
   
-  const denialRiskColor = claim.riskScore! > 75 ? 'text-destructive' : claim.riskScore! > 50 ? 'text-accent' : 'text-success';
+  const riskScore = claim.riskScore || 0;
+  const denialRiskColor = riskScore > 75 ? 'text-destructive' : riskScore > 50 ? 'text-accent' : 'text-success';
+
+  const formatTimestamp = (val: string | Timestamp) => {
+    if (val instanceof Timestamp) return val.toDate().toLocaleDateString();
+    return val;
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader 
         title={`Claim ${claim.id}`} 
-        description={`Details for claim submitted for ${claim.patient} on ${claim.date}.`}
+        description={`Details for claim submitted for ${claim.patient} on ${formatTimestamp(claim.date)}.`}
         action={
             <div className="flex items-center gap-2">
                 <Button variant="outline">Generate Appeal</Button>
@@ -90,7 +111,7 @@ export default function ClaimDetailPage({ params }: { params: { id: string } }) 
                         </div>
                         <div className="flex items-center gap-2">
                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                           <div><span className="font-medium">Submitted:</span> {claim.date}</div>
+                           <div><span className="font-medium">Submitted:</span> {formatTimestamp(claim.date)}</div>
                         </div>
                         <div className="flex items-center gap-2">
                            {getStatusBadge(claim.status)}
@@ -141,7 +162,7 @@ export default function ClaimDetailPage({ params }: { params: { id: string } }) 
                 <CardContent className="space-y-4">
                     <div className="text-center">
                         <p className="text-sm text-muted-foreground">Denial Risk Score</p>
-                        <p className={`text-6xl font-bold ${denialRiskColor}`}>{claim.riskScore}%</p>
+                        <p className={`text-6xl font-bold ${denialRiskColor}`}>{riskScore}%</p>
                     </div>
                     {claim.denialReason && (
                         <Alert variant="destructive">

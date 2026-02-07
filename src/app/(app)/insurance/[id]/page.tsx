@@ -1,12 +1,10 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PageHeader } from "@/components/page-header";
-import { insurancePlans } from "@/lib/insurance-data";
-import { claims } from "@/lib/data";
 import { columns as claimColumns } from "@/app/(app)/claims/columns";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -29,21 +27,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileClock, CheckCircle, AlertTriangle, ShieldCheck } from "lucide-react";
+import { FileClock, CheckCircle, AlertTriangle, ShieldCheck, Loader } from "lucide-react";
 import { DataTable } from "@/components/data-table";
 import { usePractice } from '@/context/practice-context';
+import { useFirestore, useDoc, useCollection } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
+import { InsurancePlan } from '@/lib/insurance-data';
+import { Claim } from '@/lib/data';
 
-export default function InsuranceDetailPage({ params }: { params: { id: string } }) {
+export default function InsuranceDetailPage() {
+  const { id } = useParams() as { id: string };
   const { selectedPractice } = usePractice();
-  const plan = insurancePlans.find(p => p.id === params.id);
+  const firestore = useFirestore();
+
+  const planRef = useMemo(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'insurancePlans', id);
+  }, [firestore, id]);
+
+  const { data: plan, isLoading: planLoading } = useDoc<InsurancePlan>(planRef);
+
+  const claimsQuery = useMemo(() => {
+    if (!firestore || !plan || !selectedPractice) return null;
+    return query(
+        collection(firestore, 'claims'), 
+        where('payer', '==', plan.payerName),
+        where('practiceId', '==', selectedPractice.id)
+    );
+  }, [firestore, plan, selectedPractice]);
+
+  const { data: associatedClaims, isLoading: claimsLoading } = useCollection<Claim>(claimsQuery);
+
+  if (planLoading || claimsLoading) {
+    return <div className="flex h-[80vh] items-center justify-center"><Loader className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   if (!plan) {
     notFound();
   }
-
-  const associatedClaims = React.useMemo(() => {
-    return claims.filter(c => c.payer === plan.payerName && c.practiceId === selectedPractice.id);
-  }, [plan.payerName, selectedPractice.id]);
 
   return (
     <div className="space-y-6">
@@ -208,7 +229,7 @@ export default function InsuranceDetailPage({ params }: { params: { id: string }
         </TabsContent>
 
         <TabsContent value="claims" className="mt-4">
-            <DataTable columns={claimColumns} data={associatedClaims} filterColumn="patient" filterPlaceholder="Filter by patient..." />
+            <DataTable columns={claimColumns} data={associatedClaims || []} filterColumn="patient" filterPlaceholder="Filter by patient..." />
         </TabsContent>
       </Tabs>
     </div>

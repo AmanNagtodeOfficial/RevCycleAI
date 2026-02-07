@@ -1,17 +1,15 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PageHeader } from "@/components/page-header";
-import { patients, claims, statements } from "@/lib/data";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
 } from "@/components/ui/card";
 import {
   Tabs,
@@ -24,26 +22,50 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Cake, VenetianMask, Phone, Mail, Shield, Home, Users, Briefcase } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
 import { Separator } from "@/components/ui/separator";
 import { usePractice } from '@/context/practice-context';
+import { useFirestore, useDoc, useCollection } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
+import { Patient, Claim, Statement } from '@/lib/data';
 
-export default function PatientDetailPage({ params }: { params: { id: string } }) {
+export default function PatientDetailPage() {
+  const { id } = useParams() as { id: string };
   const { selectedPractice } = usePractice();
-  const patient = patients.find(p => p.id === params.id && p.practiceId === selectedPractice.id);
+  const firestore = useFirestore();
 
-  if (!patient) {
+  const patientRef = useMemo(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'patients', id);
+  }, [firestore, id]);
+
+  const { data: patient, isLoading: patientLoading } = useDoc<Patient>(patientRef);
+
+  const claimsQuery = useMemo(() => {
+    if (!firestore || !id) return null;
+    return query(collection(firestore, 'claims'), where('patientId', '==', id));
+  }, [firestore, id]);
+  const { data: patientClaims, isLoading: claimsLoading } = useCollection<Claim>(claimsQuery);
+
+  const statementsQuery = useMemo(() => {
+    if (!firestore || !id) return null;
+    return query(collection(firestore, 'statements'), where('patientId', '==', id));
+  }, [firestore, id]);
+  const { data: patientStatements, isLoading: statementsLoading } = useCollection<Statement>(statementsQuery);
+
+  if (patientLoading || claimsLoading || statementsLoading) {
+    return <div className="flex h-[80vh] items-center justify-center"><Loader className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (!patient || (selectedPractice && patient.practiceId !== selectedPractice.id)) {
     notFound();
   }
 
-  const patientClaims = claims.filter(c => c.patientId === patient.id);
-  const patientStatements = statements.filter(s => s.patientId === patient.id);
-
-  const totalBilled = patientClaims.reduce((acc, claim) => acc + claim.amount, 0);
-  const outstandingBalance = patientStatements.filter(s => s.status === 'Sent' || s.status === 'Overdue').reduce((acc, s) => acc + s.amountDue, 0);
+  const totalBilled = patientClaims?.reduce((acc, claim) => acc + claim.amount, 0) || 0;
+  const outstandingBalance = patientStatements?.filter(s => s.status === 'Sent' || s.status === 'Overdue').reduce((acc, s) => acc + s.amountDue, 0) || 0;
 
   const getInitials = (name: string) => {
     const parts = name.split(' ');
@@ -91,7 +113,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                             <span>Born on {patient.dob}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <VenetianMask className="w-4 h-4 text-muted-foreground" />
+                            <span className="w-4 h-4 flex items-center justify-center text-muted-foreground font-bold">G</span>
                             <span>{patient.gender}</span>
                         </div>
                    </div>
@@ -176,10 +198,10 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                     <TabsTrigger value="billing">Billing & Statements</TabsTrigger>
                 </TabsList>
                 <TabsContent value="claims" className="mt-4">
-                    <DataTable columns={claimColumns} data={patientClaims} filterColumn="status" filterPlaceholder="Filter by status..." />
+                    <DataTable columns={claimColumns} data={patientClaims || []} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
                 <TabsContent value="billing" className="mt-4">
-                     <DataTable columns={statementColumns} data={patientStatements} filterColumn="status" filterPlaceholder="Filter by status..." />
+                     <DataTable columns={statementColumns} data={patientStatements || []} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
             </Tabs>
         </div>
