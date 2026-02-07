@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -16,7 +15,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/ui/tabs";
+} from "@/components/ui/tabs";
 import { DataTable } from "@/components/data-table";
 import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
