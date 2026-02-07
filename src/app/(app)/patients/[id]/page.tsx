@@ -16,24 +16,127 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/ui/tabs";
+} from "@/ui/tabs";
 import { DataTable } from "@/components/data-table";
 import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
 import { Separator } from "@/components/ui/separator";
 import { usePractice } from '@/context/practice-context';
 import { useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Patient, Claim, Statement, PatientDocument } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-function DocumentsTab({ documents }: { documents: PatientDocument[] }) {
+function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: string, practiceId: string, patientName: string }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const firestore = useFirestore();
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!firestore) return;
+
+        setIsSaving(true);
+        const formData = new FormData(event.currentTarget);
+        
+        const newDoc = {
+            patientId,
+            practiceId,
+            name: formData.get('name'),
+            category: formData.get('category'),
+            dateUploaded: serverTimestamp(),
+            url: 'https://placehold.co/600x400?text=Patient+Document' // Placeholder for actual file upload
+        };
+
+        try {
+            await addDoc(collection(firestore, 'patientDocuments'), newDoc);
+            
+            // Log activity
+            await addDoc(collection(firestore, 'recentActivity'), {
+                user: 'Admin',
+                avatar: 'https://picsum.photos/seed/admin/40/40',
+                action: 'uploaded a new document for',
+                target: patientName,
+                time: 'Just now',
+                practiceId: practiceId,
+                createdAt: serverTimestamp()
+            });
+
+            setIsOpen(false);
+        } catch (e: any) {
+            console.error(e);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Add Document</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <form onSubmit={handleSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Add Patient Document</DialogTitle>
+                        <DialogDescription>Attach a new record or file to this patient's profile.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="doc-name">Document Name</Label>
+                            <Input id="doc-name" name="name" placeholder="e.g., Blood Test Results" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="doc-category">Category</Label>
+                            <Select name="category" required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Medical Record">Medical Record</SelectItem>
+                                    <SelectItem value="Progress Note">Progress Note</SelectItem>
+                                    <SelectItem value="Insurance Card">Insurance Card</SelectItem>
+                                    <SelectItem value="Authorization">Authorization</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="doc-file">Select File</Label>
+                            <Input id="doc-file" type="file" className="cursor-pointer" />
+                            <p className="text-[10px] text-muted-foreground">Note: Files are stored as metadata in this prototype.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                            Save Document
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function DocumentsTab({ documents, patientId, practiceId, patientName }: { documents: PatientDocument[], patientId: string, practiceId: string, patientName: string }) {
     const [filter, setFilter] = useState<string>('all');
 
     const filteredDocs = useMemo(() => {
@@ -43,7 +146,7 @@ function DocumentsTab({ documents }: { documents: PatientDocument[] }) {
 
     const formatDate = (val: any) => {
         if (val instanceof Timestamp) return val.toDate().toLocaleDateString();
-        return val;
+        return val || 'N/A';
     };
 
     return (
@@ -64,6 +167,7 @@ function DocumentsTab({ documents }: { documents: PatientDocument[] }) {
                             <SelectItem value="Authorization">Authorizations</SelectItem>
                         </SelectContent>
                     </Select>
+                    <AddDocumentDialog patientId={patientId} practiceId={practiceId} patientName={patientName} />
                 </div>
             </div>
 
@@ -288,7 +392,7 @@ export default function PatientDetailPage() {
                      <DataTable columns={statementColumns} data={patientStatements || []} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
                 <TabsContent value="documents" className="mt-4">
-                    <DocumentsTab documents={patientDocs || []} />
+                    <DocumentsTab documents={patientDocs || []} patientId={patient.id} practiceId={patient.practiceId} patientName={patient.name} />
                 </TabsContent>
             </Tabs>
         </div>

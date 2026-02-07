@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -19,6 +20,8 @@ import { useRouter } from 'next/navigation';
 import { Loader, PlusCircle, Trash2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 type CoveredCpt = {
     id: number;
@@ -37,6 +40,7 @@ type CoveredDx = {
 export default function NewInsurancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const firestore = useFirestore();
 
   const [coveredCpt, setCoveredCpt] = useState<CoveredCpt[]>([
     { id: 1, code: '', description: '', requiresAuth: false, notes: '' }
@@ -70,19 +74,50 @@ export default function NewInsurancePage() {
     setCoveredDx(coveredDx.map(dx => dx.id === id ? { ...dx, [field]: value } : dx));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!firestore) return;
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-        setIsSubmitting(false);
+    const formData = new FormData(event.currentTarget);
+    const planType = formData.get('plan-type') as any;
+    const status = formData.get('status') === 'active' ? 'Active' : 'Terminated';
+
+    const newPlan = {
+        payerName: formData.get('payer-name'),
+        planName: formData.get('plan-name'),
+        planType: planType.toUpperCase(),
+        status: status,
+        timelyFilingLimit: parseInt(formData.get('tfl') as string),
+        claimsCorrectionLimit: parseInt(formData.get('ccfl') as string),
+        memberCount: parseInt(formData.get('member-count') as string) || 0,
+        totalClaims: parseInt(formData.get('total-claims') as string) || 0,
+        benefits: {
+            individualDeductible: { inNetwork: formData.get('ind-deduct-in'), outOfNetwork: formData.get('ind-deduct-out') },
+            familyDeductible: { inNetwork: formData.get('fam-deduct-in'), outOfNetwork: formData.get('fam-deduct-out') },
+            individualOOPMax: { inNetwork: formData.get('ind-oop-in'), outOfNetwork: formData.get('ind-oop-out') },
+            familyOOPMax: { inNetwork: formData.get('fam-oop-in'), outOfNetwork: formData.get('fam-oop-out') }
+        },
+        coveredCpt: coveredCpt.filter(c => c.code).map(({ id, ...rest }) => rest),
+        coveredDx: coveredDx.filter(d => d.code).map(({ id, ...rest }) => rest),
+    };
+
+    try {
+        await addDoc(collection(firestore, 'insurancePlans'), newPlan);
         toast({
             title: "Insurance Plan Added",
             description: "The new insurance plan has been successfully added to the system.",
         });
         router.push('/insurance');
-    }, 1500);
+    } catch (error: any) {
+        toast({
+            title: "Error adding plan",
+            description: error.message,
+            variant: "destructive"
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -101,17 +136,17 @@ export default function NewInsurancePage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="payer-name">Payer Name</Label>
-                <Input id="payer-name" placeholder="e.g., Aetna" required />
+                <Input id="payer-name" name="payer-name" placeholder="e.g., Aetna" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plan-name">Plan Name</Label>
-                <Input id="plan-name" placeholder="e.g., Aetna Choice® POS II" required />
+                <Input id="plan-name" name="plan-name" placeholder="e.g., Aetna Choice® POS II" required />
               </div>
             </div>
              <div className="grid md:grid-cols-2 gap-6">
                  <div className="space-y-2">
                     <Label htmlFor="plan-type">Plan Type</Label>
-                     <Select required>
+                     <Select required name="plan-type">
                         <SelectTrigger id="plan-type">
                             <SelectValue placeholder="Select a plan type" />
                         </SelectTrigger>
@@ -125,7 +160,7 @@ export default function NewInsurancePage() {
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="status">Status</Label>
-                     <Select required defaultValue="active">
+                     <Select required name="status" defaultValue="active">
                         <SelectTrigger id="status">
                             <SelectValue placeholder="Select status" />
                         </SelectTrigger>
@@ -139,21 +174,21 @@ export default function NewInsurancePage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="tfl">Timely Filing Limit (Days)</Label>
-                <Input id="tfl" type="number" placeholder="e.g., 90" required />
+                <Input id="tfl" name="tfl" type="number" placeholder="e.g., 90" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ccfl">Claims Correction Limit (Days)</Label>
-                <Input id="ccfl" type="number" placeholder="e.g., 180" required />
+                <Input id="ccfl" name="ccfl" type="number" placeholder="e.g., 180" required />
               </div>
             </div>
              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <Label htmlFor="member-count">Member Count</Label>
-                    <Input id="member-count" type="number" placeholder="e.g., 1250" required defaultValue="0" />
+                    <Input id="member-count" name="member-count" type="number" placeholder="e.g., 1250" required defaultValue="0" />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="total-claims">Total Claims</Label>
-                    <Input id="total-claims" type="number" placeholder="e.g., 850" required defaultValue="0" />
+                    <Input id="total-claims" name="total-claims" type="number" placeholder="e.g., 850" required defaultValue="0" />
                 </div>
             </div>
           </CardContent>
@@ -170,11 +205,11 @@ export default function NewInsurancePage() {
               <div className="grid md:grid-cols-2 gap-4 mt-2">
                 <div className="space-y-2">
                   <Label htmlFor="ind-deduct-in">In-Network</Label>
-                  <Input id="ind-deduct-in" placeholder="$1,500" />
+                  <Input id="ind-deduct-in" name="ind-deduct-in" placeholder="$1,500" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ind-deduct-out">Out-of-Network</Label>
-                  <Input id="ind-deduct-out" placeholder="$5,000" />
+                  <Input id="ind-deduct-out" name="ind-deduct-out" placeholder="$5,000" />
                 </div>
               </div>
             </div>
@@ -184,11 +219,11 @@ export default function NewInsurancePage() {
               <div className="grid md:grid-cols-2 gap-4 mt-2">
                 <div className="space-y-2">
                   <Label htmlFor="fam-deduct-in">In-Network</Label>
-                  <Input id="fam-deduct-in" placeholder="$3,000" />
+                  <Input id="fam-deduct-in" name="fam-deduct-in" placeholder="$3,000" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fam-deduct-out">Out-of-Network</Label>
-                  <Input id="fam-deduct-out" placeholder="$10,000" />
+                  <Input id="fam-deduct-out" name="fam-deduct-out" placeholder="$10,000" />
                 </div>
               </div>
             </div>
@@ -198,11 +233,11 @@ export default function NewInsurancePage() {
               <div className="grid md:grid-cols-2 gap-4 mt-2">
                 <div className="space-y-2">
                   <Label htmlFor="ind-oop-in">In-Network</Label>
-                  <Input id="ind-oop-in" placeholder="$6,000" />
+                  <Input id="ind-oop-in" name="ind-oop-in" placeholder="$6,000" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ind-oop-out">Out-of-Network</Label>
-                  <Input id="ind-oop-out" placeholder="$15,000" />
+                  <Input id="ind-oop-out" name="ind-oop-out" placeholder="$15,000" />
                 </div>
               </div>
             </div>
@@ -212,11 +247,11 @@ export default function NewInsurancePage() {
               <div className="grid md:grid-cols-2 gap-4 mt-2">
                 <div className="space-y-2">
                   <Label htmlFor="fam-oop-in">In-Network</Label>
-                  <Input id="fam-oop-in" placeholder="$12,000" />
+                  <Input id="fam-oop-in" name="fam-oop-in" placeholder="$12,000" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fam-oop-out">Out-of-Network</Label>
-                  <Input id="fam-oop-out" placeholder="$30,000" />
+                  <Input id="fam-oop-out" name="fam-oop-out" placeholder="$30,000" />
                 </div>
               </div>
             </div>

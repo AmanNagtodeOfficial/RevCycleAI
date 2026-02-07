@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -8,7 +9,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +16,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader, User, Users, Briefcase, Phone, Wand2, UploadCloud } from 'lucide-react';
+import { Loader, User, Users, Briefcase, Wand2, UploadCloud } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { autoFillPatientData } from '@/ai/flows/auto-fill-patient-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePractice } from '@/context/practice-context';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type PatientFormData = {
     patientName: string;
@@ -71,6 +73,7 @@ export default function NewPatientPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { selectedPractice } = usePractice();
+  const firestore = useFirestore();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
@@ -132,25 +135,63 @@ export default function NewPatientPage() {
   };
 
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!firestore || !selectedPractice) return;
     setIsSubmitting(true);
 
     const newPatientData = {
-        ...formData,
+        name: formData.patientName,
+        dob: formData.dob,
+        gender: formData.gender,
+        status: 'Active',
+        lastVisit: new Date().toLocaleDateString(),
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        phone: formData.phone,
+        email: formData.email,
+        subscriberName: formData.subscriberSameAsPatient ? formData.patientName : formData.subscriberName,
+        subscriberDob: formData.subscriberSameAsPatient ? formData.dob : '', // In a real app we'd ask for this
+        subscriberRelationship: formData.subscriberSameAsPatient ? 'Self' : formData.subscriberRelationship,
+        primaryInsuranceProvider: formData.primaryPayer,
+        primaryInsuranceId: formData.primaryPolicyId,
+        primaryInsuranceGroup: formData.primaryGroupId,
+        secondaryInsuranceProvider: formData.secondaryPayer,
+        secondaryInsuranceId: formData.secondaryPolicyId,
+        secondaryInsuranceGroup: formData.secondaryGroupId,
         practiceId: selectedPractice.id
     };
-    console.log("Submitting patient data:", newPatientData);
 
-    // Simulate API call
-    setTimeout(() => {
-        setIsSubmitting(false);
+    try {
+        const docRef = await addDoc(collection(firestore, 'patients'), newPatientData);
+        
+        // Log activity
+        await addDoc(collection(firestore, 'recentActivity'), {
+            user: 'Admin',
+            avatar: 'https://picsum.photos/seed/admin/40/40',
+            action: 'registered new patient',
+            target: formData.patientName,
+            time: 'Just now',
+            practiceId: selectedPractice.id,
+            createdAt: serverTimestamp()
+        });
+
         toast({
             title: "Patient Created Successfully",
             description: `${formData.patientName} has been added to the system.`,
         });
         router.push('/patients');
-    }, 1500);
+    } catch (error: any) {
+        toast({
+            title: "Error creating patient",
+            description: error.message,
+            variant: "destructive"
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
