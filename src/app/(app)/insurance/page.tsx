@@ -1,7 +1,7 @@
 
 'use client';
 
-import { insurancePlans } from "@/lib/insurance-data"
+import React, { useMemo } from 'react';
 import { columns } from "./columns"
 import { DataTable } from "@/components/data-table"
 import { PageHeader } from "@/components/page-header"
@@ -13,15 +13,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Briefcase, Users, UserPlus, CheckCircle } from "lucide-react"
+import { Briefcase, Users, UserPlus, CheckCircle, Loader } from "lucide-react"
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { InsurancePlan } from '@/lib/insurance-data';
 
 export default function InsurancePage() {
-  const data = insurancePlans;
+  const firestore = useFirestore();
 
-  const stats = {
-      totalPlans: data.length,
-      activePlans: data.filter(p => p.status === 'Active').length,
-      totalMembers: data.reduce((acc, p) => acc + p.memberCount, 0),
+  const plansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'insurancePlans'));
+  }, [firestore]);
+
+  const { data: plans, isLoading } = useCollection<InsurancePlan>(plansQuery);
+
+  const stats = useMemo(() => {
+      const data = plans || [];
+      return {
+          totalPlans: data.length,
+          activePlans: data.filter(p => p.status === 'Active').length,
+          totalMembers: data.reduce((acc, p) => acc + (p.memberCount || 0), 0),
+      }
+  }, [plans]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -65,7 +86,12 @@ export default function InsurancePage() {
         </Card>
       </div>
 
-      <DataTable columns={columns} data={data} filterColumn="payerName" filterPlaceholder="Filter by payer..."/>
+      <DataTable 
+        columns={columns} 
+        data={plans || []} 
+        filterColumn="payerName" 
+        filterPlaceholder="Filter by payer..."
+      />
     </div>
   )
 }

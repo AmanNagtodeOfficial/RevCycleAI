@@ -1,8 +1,7 @@
 
 'use client';
 
-import React from "react";
-import { patients } from "@/lib/data"
+import React, { useMemo } from "react";
 import { columns } from "./columns"
 import { DataTable } from "@/components/data-table"
 import { PageHeader } from "@/components/page-header"
@@ -14,19 +13,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Users, UserPlus, UserCheck, UserX } from "lucide-react"
+import { Users, UserPlus, UserCheck, UserX, Loader } from "lucide-react"
 import { usePractice } from "@/context/practice-context";
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { Patient } from '@/lib/data';
 
 export default function PatientsPage() {
   const { selectedPractice } = usePractice();
-  
-  const data = React.useMemo(() => patients.filter(p => p.practiceId === selectedPractice.id), [selectedPractice]);
+  const firestore = useFirestore();
 
-  const stats = React.useMemo(() => ({
+  const patientsQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(
+      collection(firestore, 'patients'),
+      where('practiceId', '==', selectedPractice.id)
+    );
+  }, [firestore, selectedPractice]);
+
+  const { data: patients, isLoading } = useCollection<Patient>(patientsQuery);
+
+  const stats = useMemo(() => {
+    const data = patients || [];
+    return {
       total: data.length,
       active: data.filter(p => p.status === 'Active').length,
       inactive: data.filter(p => p.status === 'Inactive').length,
-  }), [data]);
+    }
+  }, [patients]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -69,7 +91,12 @@ export default function PatientsPage() {
         </Card>
       </div>
 
-      <DataTable columns={columns} data={data} filterColumn="name" filterPlaceholder="Filter patients by name..."/>
+      <DataTable 
+        columns={columns} 
+        data={patients || []} 
+        filterColumn="name" 
+        filterPlaceholder="Filter patients by name..."
+      />
     </div>
   )
 }

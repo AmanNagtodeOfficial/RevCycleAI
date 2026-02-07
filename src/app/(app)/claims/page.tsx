@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { claims, Claim } from "@/lib/data"
+import { Claim } from "@/lib/data"
 import { PageHeader } from "@/components/page-header"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
-import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench } from "lucide-react"
+import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench, AlertCircle } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -30,16 +30,8 @@ import type { Row } from '@tanstack/react-table';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePractice } from '@/context/practice-context';
-
-
-type PayerARSummary = {
-    payerName: string;
-    age_0_30: number;
-    age_31_60: number;
-    age_61_90: number;
-    age_over_90: number;
-    balance: number;
-};
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
 
 function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
   const claim = row.original;
@@ -69,7 +61,7 @@ function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
           )}
           {claim.denialReason && (
                <Alert variant="destructive" className="max-w-md">
-                  <AlertTriangle className="h-4 w-4" />
+                  <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Denial Reason: {claim.denialReason}</AlertTitle>
               </Alert>
           )}
@@ -78,9 +70,9 @@ function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
 }
 
 function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Claim[]; onPayerSelect: (payer: string) => void; selectedPayer: string | null; }) {
-    const arSummaryData: PayerARSummary[] = useMemo(() => {
-        const daysSince = (dateString: string): number => {
-            const date = new Date(dateString);
+    const arSummaryData = useMemo(() => {
+        const daysSince = (val: string | Timestamp): number => {
+            const date = val instanceof Timestamp ? val.toDate() : new Date(val);
             const today = new Date();
             const differenceInTime = today.getTime() - date.getTime();
             return Math.floor(differenceInTime / (1000 * 3600 * 24));
@@ -89,7 +81,7 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
         const outstandingClaims = data.filter(c => c.status !== 'Paid');
         
         const arDataByPayer = outstandingClaims.reduce((acc, claim) => {
-            const payerData: PayerARSummary = acc[claim.payer] || {
+            const payerData = acc[claim.payer] || {
                 payerName: claim.payer,
                 age_0_30: 0,
                 age_31_60: 0,
@@ -114,13 +106,13 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
             
             acc[claim.payer] = payerData;
             return acc;
-        }, {} as Record<string, PayerARSummary>);
+        }, {} as Record<string, any>);
 
-        return Object.values(arDataByPayer).sort((a,b) => b.balance - a.balance);
+        return Object.values(arDataByPayer).sort((a: any, b: any) => b.balance - a.balance);
     }, [data]);
 
     const totals = useMemo(() => {
-        return arSummaryData.reduce((acc, row) => {
+        return arSummaryData.reduce((acc, row: any) => {
             acc.age_0_30 += row.age_0_30;
             acc.age_31_60 += row.age_31_60;
             acc.age_61_90 += row.age_61_90;
@@ -131,7 +123,6 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
     }, [arSummaryData]);
     
     const formatCurrency = (amount: number) => {
-      if (amount === 0) return '$0.00';
       return '$' + new Intl.NumberFormat("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -158,7 +149,7 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {arSummaryData.length > 0 ? arSummaryData.map((row) => (
+                            {arSummaryData.length > 0 ? arSummaryData.map((row: any) => (
                                 <TableRow 
                                     key={row.payerName}
                                     onClick={() => onPayerSelect(row.payerName)}
@@ -203,26 +194,36 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
 
 export default function ClaimsPage() {
   const { selectedPractice } = usePractice();
+  const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('all');
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
+
+  const claimsQuery = useMemo(() => {
+    if (!firestore || !selectedPractice) return null;
+    return query(
+      collection(firestore, 'claims'),
+      where('practiceId', '==', selectedPractice.id)
+    );
+  }, [firestore, selectedPractice]);
+
+  const { data: practiceClaims, isLoading } = useCollection<Claim>(claimsQuery);
 
   const handlePayerSelect = (payerName: string) => {
     setSelectedPayer(current => current === payerName ? null : payerName);
   };
   
-  const practiceClaims = useMemo(() => claims.filter(c => c.practiceId === selectedPractice.id), [selectedPractice]);
-
   const claimsForTab = useMemo(() => {
+    const data = practiceClaims || [];
     switch(activeTab) {
         case 'attention':
-            return practiceClaims.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
+            return data.filter(c => c.status === 'Denied' || c.status === 'Scrubbing');
         case 'in-process':
-            return practiceClaims.filter(c => c.status === 'Pending' || c.status === 'Submitted');
+            return data.filter(c => c.status === 'Pending' || c.status === 'Submitted');
         case 'paid':
-            return practiceClaims.filter(c => c.status === 'Paid');
+            return data.filter(c => c.status === 'Paid');
         case 'all':
         default:
-            return practiceClaims;
+            return data;
     }
   }, [activeTab, practiceClaims]);
 
@@ -231,12 +232,23 @@ export default function ClaimsPage() {
     return claimsForTab.filter(c => c.payer === selectedPayer);
   }, [claimsForTab, selectedPayer]);
   
-  const stats = useMemo(() => ({
-      total: practiceClaims.length,
-      paid: practiceClaims.filter(c => c.status === 'Paid').length,
-      pending: practiceClaims.filter(c => c.status === 'Pending' || c.status === 'Submitted' || c.status === 'Scrubbing').length,
-      denied: practiceClaims.filter(c => c.status === 'Denied').length
-  }), [practiceClaims]);
+  const stats = useMemo(() => {
+      const data = practiceClaims || [];
+      return {
+          total: data.length,
+          paid: data.filter(c => c.status === 'Paid').length,
+          pending: data.filter(c => c.status === 'Pending' || c.status === 'Submitted' || c.status === 'Scrubbing').length,
+          denied: data.filter(c => c.status === 'Denied').length
+      }
+  }, [practiceClaims]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
