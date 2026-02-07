@@ -1,4 +1,3 @@
-
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
@@ -13,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
+import { Timestamp } from "firebase/firestore"
 
 const getStatusBadge = (status: Appointment["status"]) => {
   switch (status) {
@@ -30,10 +30,21 @@ const getStatusBadge = (status: Appointment["status"]) => {
   }
 }
 
+const formatDate = (val: any) => {
+  if (val instanceof Timestamp) {
+    return val.toDate().toLocaleDateString();
+  }
+  if (val instanceof Date) {
+    return val.toLocaleDateString();
+  }
+  return val;
+}
+
 export const appointmentsColumns: ColumnDef<Appointment>[] = [
   {
     accessorKey: "date",
     header: "Date",
+    cell: ({ row }) => formatDate(row.getValue("date")),
   },
   {
     accessorKey: "time",

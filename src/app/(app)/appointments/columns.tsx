@@ -1,4 +1,3 @@
-
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
 import Link from "next/link"
+import { Timestamp } from "firebase/firestore"
 
 // Extended type for the data table to include patient's name
 export type AppointmentWithPatient = Appointment & { patientName: string };
@@ -34,6 +34,16 @@ const getStatusBadge = (status: Appointment["status"]) => {
   }
 }
 
+const formatDate = (val: any) => {
+  if (val instanceof Timestamp) {
+    return val.toDate().toLocaleDateString();
+  }
+  if (val instanceof Date) {
+    return val.toLocaleDateString();
+  }
+  return val;
+}
+
 export const columns: ColumnDef<AppointmentWithPatient>[] = [
   {
     accessorKey: "patientName",
@@ -43,6 +53,7 @@ export const columns: ColumnDef<AppointmentWithPatient>[] = [
   {
     accessorKey: "date",
     header: "Date",
+    cell: ({ row }) => formatDate(row.getValue("date")),
   },
   {
     accessorKey: "time",

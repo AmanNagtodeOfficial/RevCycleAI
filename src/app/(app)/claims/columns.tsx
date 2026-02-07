@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { Timestamp } from "firebase/firestore"
 
 const getStatusBadge = (status: Claim["status"]) => {
   switch (status) {
@@ -30,6 +31,16 @@ const getStatusBadge = (status: Claim["status"]) => {
     default:
       return <Badge>{status}</Badge>
   }
+}
+
+const formatDate = (val: any) => {
+  if (val instanceof Timestamp) {
+    return val.toDate().toLocaleDateString();
+  }
+  if (val instanceof Date) {
+    return val.toLocaleDateString();
+  }
+  return val;
 }
 
 export const columns: ColumnDef<Claim>[] = [
@@ -95,10 +106,12 @@ export const columns: ColumnDef<Claim>[] = [
   {
     accessorKey: "dateOfService",
     header: "Date of Service",
+    cell: ({ row }) => formatDate(row.getValue("dateOfService")),
   },
   {
     accessorKey: "date",
     header: "Submission Date",
+    cell: ({ row }) => formatDate(row.getValue("date")),
   },
   {
     id: "actions",
