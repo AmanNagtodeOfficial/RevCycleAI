@@ -21,7 +21,7 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon, Eye, AlertCircle, FileUp } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, ExternalLink, Search, Trash2, Image as ImageIcon, Eye, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
@@ -44,7 +44,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 
-function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: string, practiceId: string, patientName: string }) {
+function AddDocumentDialog({ patientId, practiceId }: { patientId: string, practiceId: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -53,8 +53,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
-            // Firestore has a 1MB limit for the entire document.
-            // Base64 encoding adds ~33% overhead. 700KB raw is a safe threshold.
+            // Safe threshold: ~700KB to allow for Base64 overhead (Firestore 1MB limit)
             if (file.size > 700 * 1024) {
                 toast({
                     title: "File too large",
@@ -107,13 +106,13 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                 setIsOpen(false);
                 setSelectedFile(null);
                 toast({
-                    title: "Document Stored",
+                    title: "Document Uploaded",
                     description: "The original file has been saved to your Firebase database.",
                 });
             } catch (err: any) {
                 console.error("Firestore Storage Error:", err);
                 toast({
-                    title: "Storage Error",
+                    title: "Upload Error",
                     description: err.message,
                     variant: "destructive"
                 });
@@ -132,15 +131,15 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button size="sm" className="bg-primary hover:bg-primary/90">
-                    <FileUp className="h-4 w-4 mr-2" /> Store New Document
+                    <FileUp className="h-4 w-4 mr-2" /> Upload New Document
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>Store Original Document</DialogTitle>
+                        <DialogTitle>Upload Document</DialogTitle>
                         <DialogDescription>
-                            Upload a file to save it directly in your medical database. Max size: 700KB.
+                            Select a file to save it directly in the patient's record. Max size: 700KB.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -156,7 +155,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                             />
                             {selectedFile && (
                                 <p className="text-[10px] text-muted-foreground">
-                                    Ready to store: {(selectedFile.size / 1024).toFixed(1)} KB
+                                    Ready: {(selectedFile.size / 1024).toFixed(1)} KB
                                 </p>
                             )}
                         </div>
@@ -192,13 +191,13 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
     );
 }
 
-function DocumentsTab({ documents, patientId, practiceId, patientName }: { documents: PatientDocument[], patientId: string, practiceId: string, patientName: string }) {
+function DocumentsTab({ documents, patientId, practiceId }: { documents: PatientDocument[], patientId: string, practiceId: string }) {
     const [filter, setFilter] = useState<string>('all');
     const [search, setSearch] = useState('');
     const firestore = useFirestore();
 
     const isImage = (url: string) => {
-        return url.startsWith('data:image/');
+        return url && url.startsWith('data:image/');
     };
 
     const filteredDocs = useMemo(() => {
@@ -270,21 +269,21 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                             <SelectItem value="Authorization">Authorizations</SelectItem>
                         </SelectContent>
                     </Select>
-                    <AddDocumentDialog patientId={patientId} practiceId={practiceId} patientName={patientName} />
+                    <AddDocumentDialog patientId={patientId} practiceId={practiceId} />
                 </div>
             </div>
 
             <div className="grid gap-4">
                 {filteredDocs.length > 0 ? (
-                    filteredDocs.map((doc) => {
-                        const isImg = isImage(doc.url);
+                    filteredDocs.map((docItem) => {
+                        const isImg = isImage(docItem.url);
                         return (
-                            <Card key={doc.id} className="overflow-hidden group hover:shadow-md transition-all">
+                            <Card key={docItem.id} className="overflow-hidden group hover:shadow-md transition-all">
                                 <CardContent className="p-0 flex flex-col sm:flex-row items-stretch sm:items-center">
                                     <div className="w-full sm:w-32 h-24 sm:h-auto bg-muted flex items-center justify-center relative overflow-hidden border-b sm:border-b-0 sm:border-r">
                                         {isImg ? (
                                             <img 
-                                                src={doc.url} 
+                                                src={docItem.url} 
                                                 alt="preview" 
                                                 className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
                                             />
@@ -301,26 +300,26 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
 
                                     <div className="flex-1 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
-                                            <p className="font-medium group-hover:text-primary transition-colors">{doc.name}</p>
+                                            <p className="font-medium group-hover:text-primary transition-colors">{docItem.name}</p>
                                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
+                                                <Badge variant="secondary" className="text-[10px] py-0">{docItem.category}</Badge>
                                                 <span>•</span>
                                                 <span className="flex items-center gap-1">
                                                     {isImg ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                                                     {isImg ? 'Image' : 'PDF Document'}
                                                 </span>
                                                 <span>•</span>
-                                                <span>Stored on {formatDate(doc.dateUploaded)}</span>
+                                                <span>Stored on {formatDate(docItem.dateUploaded)}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 self-end sm:self-center">
                                             <Button variant="outline" size="sm" asChild className="shadow-sm">
-                                                <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                <a href={docItem.url} target="_blank" rel="noopener noreferrer">
                                                     <ExternalLink className="h-4 w-4 mr-2" />
                                                     Open Original
                                                 </a>
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.name)} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(docItem.id, docItem.name)} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -332,8 +331,8 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                 ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
                         <FileUp className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                        <p className="text-muted-foreground font-medium">No stored documents found.</p>
-                        <p className="text-xs text-muted-foreground mt-1">Files uploaded here are saved directly to your medical database.</p>
+                        <p className="text-muted-foreground font-medium">No documents found.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Files uploaded here are saved directly to the patient record.</p>
                     </div>
                 )}
             </div>
@@ -408,7 +407,7 @@ export default function PatientDetailPage() {
             <Card>
                 <CardHeader className="flex flex-row items-center gap-4">
                     <Avatar className="h-16 w-16 border">
-                        <AvatarImage src={`https://picsum.photos/seed/${patient.id}/100/100`} data-ai-hint="profile picture" />
+                        <AvatarImage src={`https://picsum.photos/seed/${patient.id}/100/100`} />
                         <AvatarFallback>{getInitials(patient.name)}</AvatarFallback>
                     </Avatar>
                      <div>
@@ -520,7 +519,7 @@ export default function PatientDetailPage() {
                      <DataTable columns={statementColumns} data={patientStatements || []} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
                 <TabsContent value="documents" className="mt-4">
-                    <DocumentsTab documents={patientDocs || []} patientId={patient.id} practiceId={patient.practiceId} patientName={patient.name} />
+                    <DocumentsTab documents={patientDocs || []} patientId={patient.id} practiceId={patient.practiceId} />
                 </TabsContent>
             </Tabs>
         </div>
