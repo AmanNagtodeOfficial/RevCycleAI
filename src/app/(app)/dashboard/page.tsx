@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, FileText, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { DollarSign, FileText, CheckCircle, XCircle, Loader, AlertCircle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -21,6 +21,7 @@ import { usePractice } from '@/context/practice-context';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { Claim, RecentActivity } from '@/lib/data';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function DashboardPage() {
   const { selectedPractice } = usePractice();
@@ -34,7 +35,7 @@ export default function DashboardPage() {
       where('practiceId', '==', selectedPractice.id)
     );
   }, [firestore, selectedPractice]);
-  const { data: claims, isLoading: claimsLoading } = useCollection<Claim>(claimsQuery);
+  const { data: claims, isLoading: claimsLoading, error: claimsError } = useCollection<Claim>(claimsQuery);
 
   // Real-time Recent Activity
   const activityQuery = useMemo(() => {
@@ -46,7 +47,7 @@ export default function DashboardPage() {
       limit(5)
     );
   }, [firestore, selectedPractice]);
-  const { data: activity, isLoading: activityLoading } = useCollection<RecentActivity>(activityQuery);
+  const { data: activity, isLoading: activityLoading, error: activityError } = useCollection<RecentActivity>(activityQuery);
 
   // Derived KPI Data
   const kpiData = useMemo(() => {
@@ -77,13 +78,12 @@ export default function DashboardPage() {
     ];
   }, [claims]);
 
-  // Derived Revenue Analytics (Mocking the monthly split based on real totals for visualization)
+  // Derived Revenue Analytics
   const revenueData = useMemo(() => {
     if (!claims) return [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
     const totalPaid = claims.filter(c => c.status === 'Paid').reduce((sum, c) => sum + c.amount, 0) / 1000;
     
-    // Just a basic distribution for the chart
     return months.map((month, idx) => ({
       month,
       revenue: (totalPaid / months.length) * (idx + 1) * 0.8,
@@ -118,6 +118,14 @@ export default function DashboardPage() {
           </Link>
         }
       />
+
+      {claimsError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading claims data</AlertTitle>
+          <AlertDescription>{claimsError.message}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpiData.map((kpi) => (
@@ -178,22 +186,31 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {activity?.map(act => (
-                        <div key={act.id} className="flex items-start gap-3">
-                            <Avatar className="h-8 w-8 border">
-                                <AvatarImage src={act.avatar} />
-                                <AvatarFallback>{act.user.substring(0,2)}</AvatarFallback>
-                            </Avatar>
-                            <div className="text-sm">
-                                <p className="text-muted-foreground">
-                                    <span className="font-medium text-foreground">{act.user}</span> {act.action} <span className="font-medium text-primary">{act.target}</span>
-                                </p>
-                                <p className="text-xs text-muted-foreground">{act.time}</p>
+                    {activityError ? (
+                      <div className="p-4 border border-destructive/50 rounded-lg bg-destructive/5 text-xs text-destructive">
+                        <p className="font-bold flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Configuration Required</p>
+                        <p className="mt-1">This dashboard view requires a Firestore Index. Please click the link in your browser console to enable this feature.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {activity?.map(act => (
+                            <div key={act.id} className="flex items-start gap-3">
+                                <Avatar className="h-8 w-8 border">
+                                    <AvatarImage src={act.avatar} />
+                                    <AvatarFallback>{act.user.substring(0,2)}</AvatarFallback>
+                                </Avatar>
+                                <div className="text-sm">
+                                    <p className="text-muted-foreground">
+                                        <span className="font-medium text-foreground">{act.user}</span> {act.action} <span className="font-medium text-primary">{act.target}</span>
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{act.time}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                    {(!activity || activity.length === 0) && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No recent activity found.</p>
+                        ))}
+                        {(!activity || activity.length === 0) && !activityLoading && (
+                          <p className="text-sm text-muted-foreground text-center py-4">No recent activity found.</p>
+                        )}
+                      </>
                     )}
                 </div>
             </CardContent>

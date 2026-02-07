@@ -10,12 +10,12 @@ export function useCollection<T extends DocumentData>(
 ) {
   const [data, setData] = useState<DocumentWithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<any | null>(null);
 
   useEffect(() => {
     if (query === null) {
       setData(null);
-      setIsLoading(true);
+      setIsLoading(false);
       return;
     }
     
@@ -32,8 +32,8 @@ export function useCollection<T extends DocumentData>(
         setError(null);
       },
       (err) => {
-        // Cannot construct a full FirestorePermissionError without the path,
-        // which is not easily available on a Query object.
+        console.error("Firestore useCollection error:", err);
+        // Emit error for central listener
         errorEmitter.emit('permission-error', err);
         setError(err);
         setIsLoading(false);
