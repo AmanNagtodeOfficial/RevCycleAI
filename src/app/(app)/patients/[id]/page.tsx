@@ -21,14 +21,14 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
 import { Separator } from "@/components/ui/separator";
 import { usePractice } from '@/context/practice-context';
 import { useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { Patient, Claim, Statement, PatientDocument } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -42,6 +42,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: string, practiceId: string, patientName: string }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -61,13 +63,12 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
             name: formData.get('name') as string,
             category: formData.get('category'),
             dateUploaded: serverTimestamp(),
-            url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' // Standard sample PDF URL
+            url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
         };
 
         try {
             await addDoc(collection(firestore, 'patientDocuments'), newDoc);
             
-            // Log activity
             await addDoc(collection(firestore, 'recentActivity'), {
                 user: 'Admin',
                 avatar: 'https://picsum.photos/seed/admin/40/40',
@@ -137,29 +138,73 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
 
 function DocumentsTab({ documents, patientId, practiceId, patientName }: { documents: PatientDocument[], patientId: string, practiceId: string, patientName: string }) {
     const [filter, setFilter] = useState<string>('all');
+    const [search, setSearch] = useState('');
+    const firestore = useFirestore();
 
     const filteredDocs = useMemo(() => {
-        if (filter === 'all') return documents;
-        return documents.filter(d => d.category === filter);
-    }, [documents, filter]);
+        let result = documents || [];
+        if (filter !== 'all') {
+            result = result.filter(d => d.category === filter);
+        }
+        if (search) {
+            result = result.filter(d => d.name.toLowerCase().includes(search.toLowerCase()));
+        }
+        
+        return [...result].sort((a, b) => {
+            const timeA = a.dateUploaded instanceof Timestamp ? a.dateUploaded.toMillis() : new Date(a.dateUploaded).getTime();
+            const timeB = b.dateUploaded instanceof Timestamp ? b.dateUploaded.toMillis() : new Date(b.dateUploaded).getTime();
+            return timeB - timeA;
+        });
+    }, [documents, filter, search]);
 
     const formatDate = (val: any) => {
         if (val instanceof Timestamp) return val.toDate().toLocaleDateString();
         return val || 'N/A';
     };
 
+    const handleDelete = (docId: string, docName: string) => {
+        if (!firestore) return;
+        const docRef = doc(firestore, 'patientDocuments', docId);
+        
+        deleteDoc(docRef).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
+
+        addDoc(collection(firestore, 'recentActivity'), {
+            user: 'Admin',
+            avatar: 'https://picsum.photos/seed/admin/40/40',
+            action: 'removed document',
+            target: docName,
+            time: 'Just now',
+            practiceId: practiceId,
+            createdAt: serverTimestamp()
+        });
+    };
+
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h3 className="text-lg font-semibold">Patient Documents</h3>
-                <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search documents..." 
+                            className="pl-8 w-[200px]" 
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
                     <Select value={filter} onValueChange={setFilter}>
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger className="w-[160px]">
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Documents</SelectItem>
+                            <SelectItem value="all">All Categories</SelectItem>
                             <SelectItem value="Medical Record">Medical Records</SelectItem>
                             <SelectItem value="Progress Note">Progress Notes</SelectItem>
                             <SelectItem value="Insurance Card">Insurance Cards</SelectItem>
@@ -197,8 +242,8 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                                             View PDF
                                         </a>
                                     </Button>
-                                    <Button variant="ghost" size="icon">
-                                        <Download className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.name)}>
+                                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                                     </Button>
                                 </div>
                             </CardContent>
@@ -207,7 +252,7 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                 ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg">
                         <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No documents found for this category.</p>
+                        <p className="text-muted-foreground">No documents found.</p>
                     </div>
                 )}
             </div>
