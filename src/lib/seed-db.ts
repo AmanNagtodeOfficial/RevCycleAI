@@ -1,7 +1,8 @@
+
 'use client';
 
 import { Firestore, doc, writeBatch, Timestamp } from 'firebase/firestore';
-import { practices, patients, claims, appointments, statements, insurancePlans, payments, recentActivity } from './dummy-data';
+import { practices, patients, claims, appointments, statements, insurancePlans, payments, recentActivity, patientDocuments } from './dummy-data';
 import { toast } from '@/hooks/use-toast';
 
 export async function seedDatabase(firestore: Firestore) {
@@ -59,6 +60,12 @@ export async function seedDatabase(firestore: Firestore) {
     recentActivity.forEach(activity => {
         const docRef = doc(firestore, 'recentActivity', activity.id);
         const activityData = { ...activity, createdAt: Timestamp.fromDate(new Date(activity.createdAt)) };
+        batch.set(docRef, activityData);
+    });
+
+    patientDocuments.forEach(docData => {
+        const docRef = doc(firestore, 'patientDocuments', docData.id);
+        const activityData = { ...docData, dateUploaded: Timestamp.fromDate(new Date(docData.dateUploaded)) };
         batch.set(docRef, activityData);
     });
 

@@ -1,5 +1,4 @@
 
-
 import { Timestamp } from "firebase/firestore";
 
 export type Claim = {
@@ -98,6 +97,16 @@ export type Appointment = {
   status: "Scheduled" | "Checked In" | "In Room" | "Checked Out" | "Cancelled" | "No Show";
   room: string;
   notes?: string;
+  practiceId: string;
+};
+
+export type PatientDocument = {
+  id: string;
+  patientId: string;
+  name: string;
+  category: "Medical Record" | "Progress Note" | "Insurance Card" | "Authorization";
+  dateUploaded: string | Timestamp;
+  url: string;
   practiceId: string;
 };
 

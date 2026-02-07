@@ -1,4 +1,5 @@
-import { Practice, Patient, Claim, Statement, Appointment, RecentActivity } from './data';
+
+import { Practice, Patient, Claim, Statement, Appointment, RecentActivity, PatientDocument } from './data';
 import { InsurancePlan } from './insurance-data';
 import { Payment } from './payments-data';
 
@@ -282,4 +283,14 @@ export const recentActivity: Omit<RecentActivity, 'createdAt'>[] & { createdAt: 
     { id: 'activity-5', user: 'AI System', avatar: 'https://picsum.photos/seed/ai/40/40', action: 'identified scrubbing issue on', target: 'claim-4', time: '2d ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
     { id: 'activity-6', user: 'Billing', avatar: 'https://picsum.photos/seed/billing/40/40', action: 'submitted claim', target: 'claim-6', time: '1d ago', practiceId: 'practice-2', createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() },
     { id: 'activity-7', user: 'System', avatar: 'https://picsum.photos/seed/sys2/40/40', action: 'denied claim', target: 'claim-7', time: '18h ago', practiceId: 'practice-2', createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString() },
+];
+
+export const patientDocuments: Omit<PatientDocument, 'id' | 'dateUploaded'>[] & { id: string, dateUploaded: string }[] = [
+    { id: 'doc-1', patientId: 'patient-1', name: 'Initial Visit Notes', category: 'Medical Record', dateUploaded: '2024-07-10', url: '#', practiceId: 'practice-test' },
+    { id: 'doc-2', patientId: 'patient-1', name: 'Aetna Insurance Card', category: 'Insurance Card', dateUploaded: '2024-07-10', url: '#', practiceId: 'practice-test' },
+    { id: 'doc-3', patientId: 'patient-2', name: 'BCBS Front/Back', category: 'Insurance Card', dateUploaded: '2024-06-25', url: '#', practiceId: 'practice-test' },
+    { id: 'doc-4', patientId: 'patient-2', name: 'Annual Physical Results', category: 'Medical Record', dateUploaded: '2024-06-25', url: '#', practiceId: 'practice-test' },
+    { id: 'doc-5', patientId: 'patient-7', name: 'Psych Evaluation Oct 2023', category: 'Medical Record', dateUploaded: '2023-10-19', url: '#', practiceId: 'practice-2' },
+    { id: 'doc-6', patientId: 'patient-7', name: 'Cigna Coverage Verification', category: 'Insurance Card', dateUploaded: '2024-07-18', url: '#', practiceId: 'practice-2' },
+    { id: 'doc-7', patientId: 'patient-7', name: 'Therapy Auth #12345', category: 'Authorization', dateUploaded: '2024-01-10', url: '#', practiceId: 'practice-2' },
 ];

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { notFound, useParams } from "next/navigation";
 import {
@@ -22,15 +22,92 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
 import { Separator } from "@/components/ui/separator";
 import { usePractice } from '@/context/practice-context';
 import { useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where } from 'firebase/firestore';
-import { Patient, Claim, Statement } from '@/lib/data';
+import { doc, collection, query, where, Timestamp } from 'firebase/firestore';
+import { Patient, Claim, Statement, PatientDocument } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+function DocumentsTab({ documents }: { documents: PatientDocument[] }) {
+    const [filter, setFilter] = useState<string>('all');
+
+    const filteredDocs = useMemo(() => {
+        if (filter === 'all') return documents;
+        return documents.filter(d => d.category === filter);
+    }, [documents, filter]);
+
+    const formatDate = (val: any) => {
+        if (val instanceof Timestamp) return val.toDate().toLocaleDateString();
+        return val;
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Patient Documents</h3>
+                <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <Select value={filter} onValueChange={setFilter}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Documents</SelectItem>
+                            <SelectItem value="Medical Record">Medical Records</SelectItem>
+                            <SelectItem value="Progress Note">Progress Notes</SelectItem>
+                            <SelectItem value="Insurance Card">Insurance Cards</SelectItem>
+                            <SelectItem value="Authorization">Authorizations</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="grid gap-4">
+                {filteredDocs.length > 0 ? (
+                    filteredDocs.map((doc) => (
+                        <Card key={doc.id}>
+                            <CardContent className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 bg-muted rounded-lg">
+                                        <FileText className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">{doc.name}</p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
+                                            <span>•</span>
+                                            <span>Uploaded on {formatDate(doc.dateUploaded)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="icon" asChild>
+                                        <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                            <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                    <Button variant="ghost" size="icon">
+                                        <Download className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No documents found for this category.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export default function PatientDetailPage() {
   const { id } = useParams() as { id: string };
@@ -56,7 +133,13 @@ export default function PatientDetailPage() {
   }, [firestore, id]);
   const { data: patientStatements, isLoading: statementsLoading } = useCollection<Statement>(statementsQuery);
 
-  if (patientLoading || claimsLoading || statementsLoading) {
+  const docsQuery = useMemo(() => {
+    if (!firestore || !id) return null;
+    return query(collection(firestore, 'patientDocuments'), where('patientId', '==', id));
+  }, [firestore, id]);
+  const { data: patientDocs, isLoading: docsLoading } = useCollection<PatientDocument>(docsQuery);
+
+  if (patientLoading || claimsLoading || statementsLoading || docsLoading) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
@@ -193,15 +276,19 @@ export default function PatientDetailPage() {
                 </CardContent>
             </Card>
             <Tabs defaultValue="claims" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="claims">Claims History</TabsTrigger>
                     <TabsTrigger value="billing">Billing & Statements</TabsTrigger>
+                    <TabsTrigger value="documents">Documents</TabsTrigger>
                 </TabsList>
                 <TabsContent value="claims" className="mt-4">
                     <DataTable columns={claimColumns} data={patientClaims || []} filterColumn="status" filterPlaceholder="Filter by status..." />
                 </TabsContent>
                 <TabsContent value="billing" className="mt-4">
                      <DataTable columns={statementColumns} data={patientStatements || []} filterColumn="status" filterPlaceholder="Filter by status..." />
+                </TabsContent>
+                <TabsContent value="documents" className="mt-4">
+                    <DocumentsTab documents={patientDocs || []} />
                 </TabsContent>
             </Tabs>
         </div>

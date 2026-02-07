@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Practice": {
@@ -171,6 +172,20 @@
             "practiceId": {"type": "string"},
             "createdAt": { "type": "string", "format": "date-time"}
         }
+    },
+    "PatientDocument": {
+      "title": "PatientDocument",
+      "description": "A document associated with a patient.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Medical Record", "Progress Note", "Insurance Card", "Authorization"] },
+        "dateUploaded": { "type": "string", "format": "date" },
+        "url": { "type": "string" },
+        "practiceId": { "type": "string" }
+      },
+      "required": ["patientId", "name", "category", "practiceId"]
     }
   },
   "auth": {
@@ -184,6 +199,7 @@
     "/appointments/{appointmentId}": { "schema": { "$ref": "#/entities/Appointment" }, "description": "Stores patient appointments." },
     "/insurancePlans/{planId}": { "schema": { "$ref": "#/entities/InsurancePlan" }, "description": "Stores insurance plan details." },
     "/payments/{paymentId}": { "schema": { "$ref": "#/entities/Payment" }, "description": "Stores payment records." },
-    "/recentActivity/{activityId}": { "schema": { "$ref": "#/entities/RecentActivity" }, "description": "Stores recent activity logs." }
+    "/recentActivity/{activityId}": { "schema": { "$ref": "#/entities/RecentActivity" }, "description": "Stores recent activity logs." },
+    "/patientDocuments/{documentId}": { "schema": { "$ref": "#/entities/PatientDocument" }, "description": "Stores patient documents." }
   }
 }
