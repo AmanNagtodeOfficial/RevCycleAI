@@ -21,7 +21,7 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
@@ -44,54 +44,65 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
 
 function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: string, practiceId: string, patientName: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const firestore = useFirestore();
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!firestore) return;
+        if (!firestore || !selectedFile) return;
 
         setIsSaving(true);
         const formData = new FormData(event.currentTarget);
         const name = formData.get('name') as string;
-        
-        // Mock logic to determine URL based on "file" selection
-        const isImage = name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
-        const url = isImage 
-            ? `https://picsum.photos/seed/${Date.now()}/800/600`
-            : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+        const category = formData.get('category') as string;
 
-        const newDoc = {
-            patientId,
-            practiceId,
-            name: name,
-            category: formData.get('category'),
-            dateUploaded: serverTimestamp(),
-            url: url
+        // Convert file to Base64 to store "Original File" in Firebase (Firestore metadata field)
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const fileDataUri = e.target?.result as string;
+
+            const newDoc = {
+                patientId,
+                practiceId,
+                name: name,
+                category: category,
+                dateUploaded: serverTimestamp(),
+                url: fileDataUri // Actual file content stored in Firebase
+            };
+
+            try {
+                await addDoc(collection(firestore, 'patientDocuments'), newDoc);
+                
+                await addDoc(collection(firestore, 'recentActivity'), {
+                    user: 'Admin',
+                    avatar: 'https://picsum.photos/seed/admin/40/40',
+                    action: 'uploaded original document',
+                    target: name,
+                    time: 'Just now',
+                    practiceId: practiceId,
+                    createdAt: serverTimestamp()
+                });
+
+                setIsOpen(false);
+                setSelectedFile(null);
+            } catch (err: any) {
+                console.error(err);
+            } finally {
+                setIsSaving(false);
+            }
         };
-
-        try {
-            await addDoc(collection(firestore, 'patientDocuments'), newDoc);
-            
-            await addDoc(collection(firestore, 'recentActivity'), {
-                user: 'Admin',
-                avatar: 'https://picsum.photos/seed/admin/40/40',
-                action: 'uploaded a new document for',
-                target: patientName,
-                time: 'Just now',
-                practiceId: practiceId,
-                createdAt: serverTimestamp()
-            });
-
-            setIsOpen(false);
-        } catch (e: any) {
-            console.error(e);
-        } finally {
-            setIsSaving(false);
-        }
+        reader.readAsDataURL(selectedFile);
     }
 
     return (
@@ -102,13 +113,27 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
             <DialogContent>
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>Add Patient Document</DialogTitle>
-                        <DialogDescription>Attach a new PDF record or Image file to this patient's profile.</DialogDescription>
+                        <DialogTitle>Add Original Document</DialogTitle>
+                        <DialogDescription>Select a file from your device to store securely in Firebase.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="doc-name">Document Name (with extension)</Label>
-                            <Input id="doc-name" name="name" placeholder="e.g., Blood Test Results.pdf or ID_Card.png" required />
+                            <Label htmlFor="doc-file">Select Original File</Label>
+                            <Input 
+                                id="doc-file" 
+                                type="file" 
+                                accept=".pdf,image/*" 
+                                className="cursor-pointer" 
+                                onChange={handleFileChange}
+                                required
+                            />
+                            {selectedFile && (
+                                <p className="text-xs text-muted-foreground">Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="doc-name">Display Name</Label>
+                            <Input id="doc-name" name="name" placeholder="e.g., Blood Test Results" defaultValue={selectedFile?.name || ''} required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="doc-category">Category</Label>
@@ -124,17 +149,12 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="doc-file">Select File (PDF or Image)</Label>
-                            <Input id="doc-file" type="file" accept=".pdf,image/*" className="cursor-pointer" />
-                            <p className="text-[10px] text-muted-foreground">Note: In this prototype, uploads link to sample files based on name extension.</p>
-                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                        <Button type="submit" disabled={isSaving}>
+                        <Button type="submit" disabled={isSaving || !selectedFile}>
                             {isSaving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Document
+                            Store in Firebase
                         </Button>
                     </DialogFooter>
                 </form>
@@ -148,9 +168,11 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
     const [search, setSearch] = useState('');
     const firestore = useFirestore();
 
-    const isImage = (name: string) => {
+    const isImage = (name: string, url: string) => {
         const ext = name.split('.').pop()?.toLowerCase();
-        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
+        const isImgExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
+        const isImgDataUri = url.startsWith('data:image/');
+        return isImgExt || isImgDataUri;
     };
 
     const filteredDocs = useMemo(() => {
@@ -200,7 +222,7 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="text-lg font-semibold">Patient Documents</h3>
+                <h3 className="text-lg font-semibold">Original Documents</h3>
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -230,48 +252,64 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
             <div className="grid gap-4">
                 {filteredDocs.length > 0 ? (
                     filteredDocs.map((doc) => {
-                        const isImg = isImage(doc.name);
+                        const isImg = isImage(doc.name, doc.url);
                         return (
-                            <Card key={doc.id}>
-                                <CardContent className="p-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-muted rounded-lg">
-                                            {isImg ? (
-                                                <ImageIcon className="h-6 w-6 text-primary" />
-                                            ) : (
-                                                <FileText className="h-6 w-6 text-destructive" />
-                                            )}
+                            <Card key={doc.id} className="overflow-hidden group">
+                                <CardContent className="p-0 flex flex-col sm:flex-row items-stretch sm:items-center">
+                                    {/* Glimpse (Preview) Section */}
+                                    <div className="w-full sm:w-32 h-24 sm:h-auto bg-muted flex items-center justify-center relative overflow-hidden border-b sm:border-b-0 sm:border-r">
+                                        {isImg ? (
+                                            <img 
+                                                src={doc.url} 
+                                                alt="preview" 
+                                                className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-1 text-destructive">
+                                                <FileText className="h-8 w-8" />
+                                                <span className="text-[10px] font-bold uppercase">PDF</span>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Eye className="text-white h-6 w-6" />
                                         </div>
+                                    </div>
+
+                                    <div className="flex-1 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <p className="font-medium">{doc.name}</p>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
                                                 <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
                                                 <span>•</span>
-                                                <span>Format: {isImg ? 'Image' : 'PDF'}</span>
+                                                <span className="flex items-center gap-1">
+                                                    {isImg ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                                                    {isImg ? 'Image' : 'PDF'}
+                                                </span>
                                                 <span>•</span>
                                                 <span>Uploaded on {formatDate(doc.dateUploaded)}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button variant="outline" size="sm" asChild>
-                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="h-4 w-4 mr-2" />
-                                                View {isImg ? 'Image' : 'PDF'}
-                                            </a>
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.name)}>
-                                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                                        </Button>
+                                        <div className="flex items-center gap-2 self-end sm:self-center">
+                                            <Button variant="outline" size="sm" asChild className="shadow-sm">
+                                                <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                                    Open Original
+                                                </a>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.name)} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
                         );
                     })
                 ) : (
-                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No documents found.</p>
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <p className="text-muted-foreground font-medium">No original documents found.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Upload files to store them securely in Firebase.</p>
                     </div>
                 )}
             </div>

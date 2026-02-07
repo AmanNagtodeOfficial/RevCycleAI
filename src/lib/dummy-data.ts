@@ -275,6 +275,7 @@ export const payments: Payment[] = [
 ];
 
 const SAMPLE_PDF_URL = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+const SAMPLE_IMG_URL = 'https://picsum.photos/seed/docpreview/800/600';
 
 export const recentActivity: Omit<RecentActivity, 'createdAt'>[] & { createdAt: string }[] = [
     { id: 'activity-1', user: 'Admin', avatar: 'https://picsum.photos/seed/admin/40/40', action: 'submitted claim', target: 'claim-1', time: '2h ago', practiceId: 'practice-test', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
@@ -288,10 +289,10 @@ export const recentActivity: Omit<RecentActivity, 'createdAt'>[] & { createdAt: 
 
 export const patientDocuments: Omit<PatientDocument, 'id' | 'dateUploaded'>[] & { id: string, dateUploaded: string }[] = [
     { id: 'doc-1', patientId: 'patient-1', name: 'Initial Visit Notes.pdf', category: 'Medical Record', dateUploaded: '2024-07-10', url: SAMPLE_PDF_URL, practiceId: 'practice-test' },
-    { id: 'doc-2', patientId: 'patient-1', name: 'Aetna Insurance Card.png', category: 'Insurance Card', dateUploaded: '2024-07-10', url: 'https://picsum.photos/seed/ins1/800/600', practiceId: 'practice-test' },
-    { id: 'doc-3', patientId: 'patient-2', name: 'BCBS ID Card.jpg', category: 'Insurance Card', dateUploaded: '2024-06-25', url: 'https://picsum.photos/seed/ins2/800/600', practiceId: 'practice-test' },
+    { id: 'doc-2', patientId: 'patient-1', name: 'Aetna Insurance Card.png', category: 'Insurance Card', dateUploaded: '2024-07-10', url: SAMPLE_IMG_URL, practiceId: 'practice-test' },
+    { id: 'doc-3', patientId: 'patient-2', name: 'BCBS ID Card.jpg', category: 'Insurance Card', dateUploaded: '2024-06-25', url: SAMPLE_IMG_URL, practiceId: 'practice-test' },
     { id: 'doc-4', patientId: 'patient-2', name: 'Annual Physical Results.pdf', category: 'Medical Record', dateUploaded: '2024-06-25', url: SAMPLE_PDF_URL, practiceId: 'practice-test' },
     { id: 'doc-5', patientId: 'patient-7', name: 'Psych Evaluation Oct 2023.pdf', category: 'Medical Record', dateUploaded: '2023-10-19', url: SAMPLE_PDF_URL, practiceId: 'practice-2' },
-    { id: 'doc-6', patientId: 'patient-7', name: 'Cigna Verification.png', category: 'Insurance Card', dateUploaded: '2024-07-18', url: 'https://picsum.photos/seed/ins3/800/600', practiceId: 'practice-2' },
+    { id: 'doc-6', patientId: 'patient-7', name: 'Cigna Verification.png', category: 'Insurance Card', dateUploaded: '2024-07-18', url: SAMPLE_IMG_URL, practiceId: 'practice-2' },
     { id: 'doc-7', patientId: 'patient-7', name: 'Therapy Auth #12345.pdf', category: 'Authorization', dateUploaded: '2024-01-10', url: SAMPLE_PDF_URL, practiceId: 'practice-2' },
 ];
