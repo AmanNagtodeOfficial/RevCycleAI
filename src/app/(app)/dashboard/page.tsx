@@ -1,3 +1,4 @@
+
 'use client'
 
 import React, { useMemo } from 'react';
@@ -19,7 +20,7 @@ import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianG
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePractice } from '@/context/practice-context';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, limit, Timestamp } from 'firebase/firestore';
 import { Claim, RecentActivity } from '@/lib/data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -38,13 +39,14 @@ export default function DashboardPage() {
   const { data: claims, isLoading: claimsLoading, error: claimsError } = useCollection<Claim>(claimsQuery);
 
   // Real-time Recent Activity
+  // Note: We removed orderBy('createdAt', 'desc') to avoid requiring a composite index.
+  // We handle the sorting client-side for better developer experience.
   const activityQuery = useMemo(() => {
     if (!firestore || !selectedPractice) return null;
     return query(
       collection(firestore, 'recentActivity'),
       where('practiceId', '==', selectedPractice.id),
-      orderBy('createdAt', 'desc'),
-      limit(5)
+      limit(20) // Fetch enough items to sort locally
     );
   }, [firestore, selectedPractice]);
   const { data: activity, isLoading: activityLoading, error: activityError } = useCollection<RecentActivity>(activityQuery);
@@ -98,6 +100,16 @@ export default function DashboardPage() {
       .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
       .slice(0, 5);
   }, [claims]);
+
+  // Sort activity client-side to avoid index requirement
+  const sortedActivity = useMemo(() => {
+    if (!activity) return [];
+    return [...activity].sort((a, b) => {
+        const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate() : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+    }).slice(0, 5);
+  }, [activity]);
 
   if (claimsLoading || activityLoading) {
     return (
@@ -188,12 +200,12 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                     {activityError ? (
                       <div className="p-4 border border-destructive/50 rounded-lg bg-destructive/5 text-xs text-destructive">
-                        <p className="font-bold flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Configuration Required</p>
-                        <p className="mt-1">This dashboard view requires a Firestore Index. Please click the link in your browser console to enable this feature.</p>
+                        <p className="font-bold flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Configuration Error</p>
+                        <p className="mt-1">{activityError.message}</p>
                       </div>
                     ) : (
                       <>
-                        {activity?.map(act => (
+                        {sortedActivity?.map(act => (
                             <div key={act.id} className="flex items-start gap-3">
                                 <Avatar className="h-8 w-8 border">
                                     <AvatarImage src={act.avatar} />
@@ -207,7 +219,7 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                         ))}
-                        {(!activity || activity.length === 0) && !activityLoading && (
+                        {(!sortedActivity || sortedActivity.length === 0) && !activityLoading && (
                           <p className="text-sm text-muted-foreground text-center py-4">No recent activity found.</p>
                         )}
                       </>
