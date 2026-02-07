@@ -21,7 +21,7 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon, Eye } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon, Eye, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
@@ -42,9 +42,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import Image from 'next/image';
 
 function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: string, practiceId: string, patientName: string }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -54,7 +54,20 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
-            setSelectedFile(e.target.files[0]);
+            const file = e.target.files[0];
+            // Firestore has a 1MB limit for documents. Base64 encoding adds overhead.
+            // 700KB is a safe threshold for the raw file.
+            if (file.size > 750 * 1024) {
+                toast({
+                    title: "File too large",
+                    description: "To store files directly in Firestore, they must be smaller than 750KB. For larger files, a production app would use Firebase Storage.",
+                    variant: "destructive"
+                });
+                e.target.value = ''; // Reset input
+                setSelectedFile(null);
+                return;
+            }
+            setSelectedFile(file);
         }
     };
 
@@ -67,7 +80,6 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
         const name = formData.get('name') as string;
         const category = formData.get('category') as string;
 
-        // Convert file to Base64 to store "Original File" in Firebase (Firestore metadata field)
         const reader = new FileReader();
         reader.onload = async (e) => {
             const fileDataUri = e.target?.result as string;
@@ -78,7 +90,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                 name: name,
                 category: category,
                 dateUploaded: serverTimestamp(),
-                url: fileDataUri // Actual file content stored in Firebase
+                url: fileDataUri 
             };
 
             try {
@@ -96,11 +108,26 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
 
                 setIsOpen(false);
                 setSelectedFile(null);
+                toast({
+                    title: "Document Uploaded",
+                    description: "The document has been securely stored in Firebase.",
+                });
             } catch (err: any) {
                 console.error(err);
+                toast({
+                    title: "Storage Error",
+                    description: err.message.includes("longer than") 
+                        ? "The encoded file still exceeds the 1MB Firestore limit. Please use a smaller file."
+                        : err.message,
+                    variant: "destructive"
+                });
             } finally {
                 setIsSaving(false);
             }
+        };
+        reader.onerror = () => {
+            toast({ title: "Read Error", description: "Could not read the local file.", variant: "destructive" });
+            setIsSaving(false);
         };
         reader.readAsDataURL(selectedFile);
     }
@@ -114,7 +141,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Add Original Document</DialogTitle>
-                        <DialogDescription>Select a file from your device to store securely in Firebase.</DialogDescription>
+                        <DialogDescription>Select a file (under 750KB) to store securely in Firebase.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
@@ -256,7 +283,6 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                         return (
                             <Card key={doc.id} className="overflow-hidden group">
                                 <CardContent className="p-0 flex flex-col sm:flex-row items-stretch sm:items-center">
-                                    {/* Glimpse (Preview) Section */}
                                     <div className="w-full sm:w-32 h-24 sm:h-auto bg-muted flex items-center justify-center relative overflow-hidden border-b sm:border-b-0 sm:border-r">
                                         {isImg ? (
                                             <img 
@@ -309,7 +335,7 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                     <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
                         <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                         <p className="text-muted-foreground font-medium">No original documents found.</p>
-                        <p className="text-xs text-muted-foreground mt-1">Upload files to store them securely in Firebase.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Upload files (under 750KB) to store them securely in Firebase.</p>
                     </div>
                 )}
             </div>
