@@ -21,7 +21,7 @@ import { columns as claimColumns } from "@/app/(app)/claims/columns";
 import { columns as statementColumns } from "@/app/(app)/billing/columns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon, Eye, AlertCircle } from "lucide-react";
+import { Cake, Phone, Mail, Shield, Home, Users, Briefcase, Loader, FileText, Filter, Download, ExternalLink, Plus, Search, Trash2, Image as ImageIcon, Eye, AlertCircle, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { EditPatientDialog } from "./edit-patient-dialog";
@@ -43,8 +43,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: string, practiceId: string, patientName: string }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -55,15 +53,15 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
-            // Firestore has a 1MB limit for documents. Base64 encoding adds overhead.
-            // 700KB is a safe threshold for the raw file.
-            if (file.size > 750 * 1024) {
+            // Firestore has a 1MB limit for the entire document.
+            // Base64 encoding adds ~33% overhead. 700KB raw is a safe threshold.
+            if (file.size > 700 * 1024) {
                 toast({
                     title: "File too large",
-                    description: "To store files directly in Firestore, they must be smaller than 750KB. For larger files, a production app would use Firebase Storage.",
+                    description: "For database storage, files must be under 700KB. Please select a smaller file.",
                     variant: "destructive"
                 });
-                e.target.value = ''; // Reset input
+                e.target.value = '';
                 setSelectedFile(null);
                 return;
             }
@@ -84,23 +82,23 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
         reader.onload = async (e) => {
             const fileDataUri = e.target?.result as string;
 
-            const newDoc = {
-                patientId,
-                practiceId,
-                name: name,
-                category: category,
-                dateUploaded: serverTimestamp(),
-                url: fileDataUri 
-            };
-
             try {
-                await addDoc(collection(firestore, 'patientDocuments'), newDoc);
+                // Store document metadata and original file content (Base64) in Firestore
+                await addDoc(collection(firestore, 'patientDocuments'), {
+                    patientId,
+                    practiceId,
+                    name: name || selectedFile.name,
+                    category: category,
+                    dateUploaded: serverTimestamp(),
+                    url: fileDataUri 
+                });
                 
+                // Log the storage activity
                 await addDoc(collection(firestore, 'recentActivity'), {
                     user: 'Admin',
                     avatar: 'https://picsum.photos/seed/admin/40/40',
-                    action: 'uploaded original document',
-                    target: name,
+                    action: 'stored original document in database:',
+                    target: name || selectedFile.name,
                     time: 'Just now',
                     practiceId: practiceId,
                     createdAt: serverTimestamp()
@@ -109,16 +107,14 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                 setIsOpen(false);
                 setSelectedFile(null);
                 toast({
-                    title: "Document Uploaded",
-                    description: "The document has been securely stored in Firebase.",
+                    title: "Document Stored",
+                    description: "The original file has been saved to your Firebase database.",
                 });
             } catch (err: any) {
-                console.error(err);
+                console.error("Firestore Storage Error:", err);
                 toast({
                     title: "Storage Error",
-                    description: err.message.includes("longer than") 
-                        ? "The encoded file still exceeds the 1MB Firestore limit. Please use a smaller file."
-                        : err.message,
+                    description: err.message,
                     variant: "destructive"
                 });
             } finally {
@@ -126,7 +122,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
             }
         };
         reader.onerror = () => {
-            toast({ title: "Read Error", description: "Could not read the local file.", variant: "destructive" });
+            toast({ title: "Read Error", description: "Failed to read local file.", variant: "destructive" });
             setIsSaving(false);
         };
         reader.readAsDataURL(selectedFile);
@@ -135,17 +131,21 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Add Document</Button>
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                    <FileUp className="h-4 w-4 mr-2" /> Store New Document
+                </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>Add Original Document</DialogTitle>
-                        <DialogDescription>Select a file (under 750KB) to store securely in Firebase.</DialogDescription>
+                        <DialogTitle>Store Original Document</DialogTitle>
+                        <DialogDescription>
+                            Upload a file to save it directly in your medical database. Max size: 700KB.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="doc-file">Select Original File</Label>
+                            <Label htmlFor="doc-file">Select File (Image or PDF)</Label>
                             <Input 
                                 id="doc-file" 
                                 type="file" 
@@ -155,16 +155,18 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                                 required
                             />
                             {selectedFile && (
-                                <p className="text-xs text-muted-foreground">Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                    Ready to store: {(selectedFile.size / 1024).toFixed(1)} KB
+                                </p>
                             )}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="doc-name">Display Name</Label>
-                            <Input id="doc-name" name="name" placeholder="e.g., Blood Test Results" defaultValue={selectedFile?.name || ''} required />
+                            <Label htmlFor="doc-name">Document Name</Label>
+                            <Input id="doc-name" name="name" placeholder="e.g., Insurance Card Front" defaultValue={selectedFile?.name || ''} required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="doc-category">Category</Label>
-                            <Select name="category" required>
+                            <Select name="category" required defaultValue="Medical Record">
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
@@ -180,8 +182,8 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                         <Button type="submit" disabled={isSaving || !selectedFile}>
-                            {isSaving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                            Store in Firebase
+                            {isSaving ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
+                            Commit to Database
                         </Button>
                     </DialogFooter>
                 </form>
@@ -195,11 +197,8 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
     const [search, setSearch] = useState('');
     const firestore = useFirestore();
 
-    const isImage = (name: string, url: string) => {
-        const ext = name.split('.').pop()?.toLowerCase();
-        const isImgExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
-        const isImgDataUri = url.startsWith('data:image/');
-        return isImgExt || isImgDataUri;
+    const isImage = (url: string) => {
+        return url.startsWith('data:image/');
     };
 
     const filteredDocs = useMemo(() => {
@@ -212,49 +211,48 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
         }
         
         return [...result].sort((a, b) => {
-            const timeA = a.dateUploaded instanceof Timestamp ? a.dateUploaded.toMillis() : new Date(a.dateUploaded).getTime();
-            const timeB = b.dateUploaded instanceof Timestamp ? b.dateUploaded.toMillis() : new Date(b.dateUploaded).getTime();
+            const timeA = a.dateUploaded instanceof Timestamp ? a.dateUploaded.toMillis() : new Date(a.dateUploaded || 0).getTime();
+            const timeB = b.dateUploaded instanceof Timestamp ? b.dateUploaded.toMillis() : new Date(b.dateUploaded || 0).getTime();
             return timeB - timeA;
         });
     }, [documents, filter, search]);
 
     const formatDate = (val: any) => {
         if (val instanceof Timestamp) return val.toDate().toLocaleDateString();
-        return val || 'N/A';
+        if (val) return new Date(val).toLocaleDateString();
+        return 'N/A';
     };
 
-    const handleDelete = (docId: string, docName: string) => {
+    const handleDelete = async (docId: string, docName: string) => {
         if (!firestore) return;
-        const docRef = doc(firestore, 'patientDocuments', docId);
-        
-        deleteDoc(docRef).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete',
+        try {
+            await deleteDoc(doc(firestore, 'patientDocuments', docId));
+            
+            await addDoc(collection(firestore, 'recentActivity'), {
+                user: 'Admin',
+                avatar: 'https://picsum.photos/seed/admin/40/40',
+                action: 'removed stored document:',
+                target: docName,
+                time: 'Just now',
+                practiceId: practiceId,
+                createdAt: serverTimestamp()
             });
-            errorEmitter.emit('permission-error', permissionError);
-        });
 
-        addDoc(collection(firestore, 'recentActivity'), {
-            user: 'Admin',
-            avatar: 'https://picsum.photos/seed/admin/40/40',
-            action: 'removed document',
-            target: docName,
-            time: 'Just now',
-            practiceId: practiceId,
-            createdAt: serverTimestamp()
-        });
+            toast({ title: "Document Removed", description: "File successfully deleted from the database." });
+        } catch (err: any) {
+            toast({ title: "Delete Error", description: err.message, variant: "destructive" });
+        }
     };
 
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="text-lg font-semibold">Original Documents</h3>
+                <h3 className="text-lg font-semibold">Database Stored Documents</h3>
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            placeholder="Search documents..." 
+                            placeholder="Search stored files..." 
                             className="pl-8 w-[200px]" 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -279,9 +277,9 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
             <div className="grid gap-4">
                 {filteredDocs.length > 0 ? (
                     filteredDocs.map((doc) => {
-                        const isImg = isImage(doc.name, doc.url);
+                        const isImg = isImage(doc.url);
                         return (
-                            <Card key={doc.id} className="overflow-hidden group">
+                            <Card key={doc.id} className="overflow-hidden group hover:shadow-md transition-all">
                                 <CardContent className="p-0 flex flex-col sm:flex-row items-stretch sm:items-center">
                                     <div className="w-full sm:w-32 h-24 sm:h-auto bg-muted flex items-center justify-center relative overflow-hidden border-b sm:border-b-0 sm:border-r">
                                         {isImg ? (
@@ -303,16 +301,16 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
 
                                     <div className="flex-1 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
-                                            <p className="font-medium">{doc.name}</p>
+                                            <p className="font-medium group-hover:text-primary transition-colors">{doc.name}</p>
                                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
                                                 <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
                                                 <span>•</span>
                                                 <span className="flex items-center gap-1">
                                                     {isImg ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                                                    {isImg ? 'Image' : 'PDF'}
+                                                    {isImg ? 'Image' : 'PDF Document'}
                                                 </span>
                                                 <span>•</span>
-                                                <span>Uploaded on {formatDate(doc.dateUploaded)}</span>
+                                                <span>Stored on {formatDate(doc.dateUploaded)}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 self-end sm:self-center">
@@ -333,9 +331,9 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                     })
                 ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                        <p className="text-muted-foreground font-medium">No original documents found.</p>
-                        <p className="text-xs text-muted-foreground mt-1">Upload files (under 750KB) to store them securely in Firebase.</p>
+                        <FileUp className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <p className="text-muted-foreground font-medium">No stored documents found.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Files uploaded here are saved directly to your medical database.</p>
                     </div>
                 )}
             </div>
