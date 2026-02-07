@@ -58,10 +58,10 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
         const newDoc = {
             patientId,
             practiceId,
-            name: formData.get('name'),
+            name: formData.get('name') as string,
             category: formData.get('category'),
             dateUploaded: serverTimestamp(),
-            url: 'https://placehold.co/600x400?text=Patient+Document' // Placeholder for actual file upload
+            url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' // Standard sample PDF URL
         };
 
         try {
@@ -71,7 +71,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
             await addDoc(collection(firestore, 'recentActivity'), {
                 user: 'Admin',
                 avatar: 'https://picsum.photos/seed/admin/40/40',
-                action: 'uploaded a new document for',
+                action: 'uploaded a new PDF document for',
                 target: patientName,
                 time: 'Just now',
                 practiceId: practiceId,
@@ -95,7 +95,7 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Add Patient Document</DialogTitle>
-                        <DialogDescription>Attach a new record or file to this patient's profile.</DialogDescription>
+                        <DialogDescription>Attach a new PDF record or file to this patient's profile.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
@@ -117,9 +117,9 @@ function AddDocumentDialog({ patientId, practiceId, patientName }: { patientId: 
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="doc-file">Select File</Label>
-                            <Input id="doc-file" type="file" className="cursor-pointer" />
-                            <p className="text-[10px] text-muted-foreground">Note: Files are stored as metadata in this prototype.</p>
+                            <Label htmlFor="doc-file">Select PDF File</Label>
+                            <Input id="doc-file" type="file" accept=".pdf" className="cursor-pointer" />
+                            <p className="text-[10px] text-muted-foreground">Note: For this prototype, all uploads will link to a sample PDF.</p>
                         </div>
                     </div>
                     <DialogFooter>
@@ -177,21 +177,24 @@ function DocumentsTab({ documents, patientId, practiceId, patientName }: { docum
                             <CardContent className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="p-2 bg-muted rounded-lg">
-                                        <FileText className="h-6 w-6 text-primary" />
+                                        <FileText className="h-6 w-6 text-destructive" />
                                     </div>
                                     <div>
                                         <p className="font-medium">{doc.name}</p>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Badge variant="secondary" className="text-[10px] py-0">{doc.category}</Badge>
                                             <span>•</span>
+                                            <span>Format: PDF</span>
+                                            <span>•</span>
                                             <span>Uploaded on {formatDate(doc.dateUploaded)}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="icon" asChild>
+                                    <Button variant="outline" size="sm" asChild>
                                         <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-4 w-4" />
+                                            <ExternalLink className="h-4 w-4 mr-2" />
+                                            View PDF
                                         </a>
                                     </Button>
                                     <Button variant="ghost" size="icon">
