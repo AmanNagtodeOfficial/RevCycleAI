@@ -13,7 +13,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
-import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench, AlertCircle, ArrowRight } from "lucide-react"
+import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench, AlertCircle, ArrowRight, Clock, Sparkles } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -33,42 +33,105 @@ import { usePractice } from '@/context/practice-context';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 
+const getTimelineIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+        case 'paid':
+        case 'submitted':
+            return <CheckCircle className="h-3 w-3 text-success" />;
+        case 'denied':
+            return <AlertCircle className="h-3 w-3 text-destructive" />;
+        case 'pending':
+        case 'scrubbing':
+            return <Loader className="h-3 w-3 text-accent animate-spin" />;
+        default:
+            return <FileText className="h-3 w-3 text-muted-foreground" />;
+    }
+}
+
 function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
   const claim = row.original;
 
   return (
-      <div className="p-4 bg-muted/50 text-sm space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">Service Details</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><span className="text-muted-foreground w-28 inline-block">Procedure:</span> {claim.procedure}</div>
-                <div><span className="text-muted-foreground w-28 inline-block">Diagnosis:</span> {claim.diagnosis}</div>
-                <div><span className="text-muted-foreground w-28 inline-block">Submission:</span> {claim.submissionType} ({claim.formType})</div>
-                <div><span className="text-muted-foreground w-28 inline-block">Priority:</span> {claim.priority}</div>
-            </div>
-          </div>
-          {claim.aiSuggestions && claim.aiSuggestions.length > 0 && (
+      <div className="p-6 bg-muted/30 text-sm space-y-6 border-t animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2 text-primary">
+                        <FileText className="h-4 w-4" />
+                        Service Details
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs bg-background p-4 rounded-xl border shadow-sm">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Procedure</span>
+                            <span className="font-medium">{claim.procedure}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Diagnosis</span>
+                            <span className="font-medium">{claim.diagnosis}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Submission Type</span>
+                            <span className="font-medium">{claim.submissionType} ({claim.formType})</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Priority</span>
+                            <span className="font-medium">{claim.priority}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {claim.aiSuggestions && claim.aiSuggestions.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-accent">
+                            <Sparkles className="h-4 w-4" />
+                            AI Insights & Scrubber Suggestions
+                        </h4>
+                        <div className="space-y-2">
+                            {claim.aiSuggestions.map((suggestion, index) => (
+                                <div key={index} className="text-xs p-3 border rounded-lg bg-background shadow-sm hover:border-accent/50 transition-colors">
+                                    <p className="font-semibold mb-1.5 leading-relaxed">{suggestion.suggestion}</p>
+                                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                                        <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full"><FileWarning className="h-3 w-3" /> {suggestion.category}</span>
+                                        <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full"><Wrench className="h-3 w-3" /> Action: {suggestion.actionType}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {claim.denialReason && (
+                    <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 shadow-sm">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle className="text-xs font-bold">Denial: {claim.denialReason}</AlertTitle>
+                    </Alert>
+                )}
+              </div>
+
               <div>
-                  <h4 className="font-semibold mb-2">AI Suggestions</h4>
-                   <div className="space-y-2">
-                      {claim.aiSuggestions.map((suggestion, index) => (
-                          <div key={index} className="text-xs p-2 border rounded-lg bg-background">
-                              <p className="font-semibold mb-1">{suggestion.suggestion}</p>
-                              <div className="flex items-center gap-4 text-muted-foreground">
-                                  <span className="flex items-center gap-1"><FileWarning className="h-3 w-3" /> {suggestion.category}: {suggestion.field}</span>
-                                  <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Action: {suggestion.actionType}</span>
+                  <h4 className="font-semibold mb-4 flex items-center gap-2 text-primary">
+                      <Clock className="h-4 w-4" />
+                      Claim Activity Timeline
+                  </h4>
+                  <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-border/60">
+                      {claim.history?.map((event, idx) => (
+                          <div key={idx} className="relative flex gap-4 items-start group">
+                              <div className="mt-0.5 relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-background shadow-sm group-hover:border-primary transition-colors">
+                                  {getTimelineIcon(event.status)}
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                  <span className="text-xs font-bold leading-none">{event.status}</span>
+                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                      <span>{event.date}</span>
+                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/30"></span>
+                                      <span className="font-medium">{event.user}</span>
+                                  </div>
                               </div>
                           </div>
                       ))}
                   </div>
               </div>
-          )}
-          {claim.denialReason && (
-               <Alert variant="destructive" className="max-w-md">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Denial Reason: {claim.denialReason}</AlertTitle>
-              </Alert>
-          )}
+          </div>
       </div>
   )
 }
