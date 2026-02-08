@@ -1,7 +1,8 @@
+
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { Claim, patients } from "@/lib/data"
+import { Claim } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
+import { MoreHorizontal, ChevronDown, ChevronRight, FileText } from "lucide-react"
 import Link from "next/link"
 import { Timestamp } from "firebase/firestore"
 
@@ -40,7 +41,10 @@ const formatDate = (val: any) => {
   if (val instanceof Date) {
     return val.toLocaleDateString();
   }
-  return val;
+  if (typeof val === 'string' && val) {
+      return new Date(val).toLocaleDateString();
+  }
+  return 'N/A';
 }
 
 export const columns: ColumnDef<Claim>[] = [
@@ -61,29 +65,33 @@ export const columns: ColumnDef<Claim>[] = [
     },
   },
   {
-    accessorKey: "patientId",
-    header: "Patient ID",
-    cell: ({ row }) => <Link href={`/patients/${row.getValue("patientId")}`} className="font-medium text-primary hover:underline">{row.getValue("patientId") as string}</Link>,
+    accessorKey: "id",
+    header: "Claim ID",
+    cell: ({ row }) => (
+        <div className="flex items-center gap-2 font-mono text-xs">
+            <FileText className="h-3 w-3 text-muted-foreground" />
+            {row.getValue("id")}
+        </div>
+    ),
   },
   {
     accessorKey: "patient",
     header: "Patient",
-  },
-  {
-    accessorKey: "provider",
-    header: "Provider",
+    cell: ({ row }) => (
+        <Link href={`/patients/${row.original.patientId}`} className="font-medium text-primary hover:underline">
+            {row.getValue("patient")}
+        </Link>
+    ),
   },
   {
     accessorKey: "payer",
-    header: "Primary Payer",
+    header: "Insurance Payer",
+    cell: ({ row }) => <span className="font-medium">{row.getValue("payer")}</span>,
   },
   {
-    id: 'secondaryPayer',
-    header: 'Secondary Payer',
-    cell: ({ row }) => {
-      const patient = patients.find(p => p.id === row.original.patientId);
-      return patient?.secondaryInsuranceProvider || 'N/A';
-    },
+    accessorKey: "procedure",
+    header: "Main Procedure",
+    cell: ({ row }) => <div className="max-w-[150px] truncate text-xs" title={row.getValue("procedure") as string}>{row.getValue("procedure")}</div>,
   },
   {
     accessorKey: "amount",
@@ -95,7 +103,7 @@ export const columns: ColumnDef<Claim>[] = [
         currency: "USD",
       }).format(amount)
 
-      return <div className="text-right font-medium">{formatted}</div>
+      return <div className="text-right font-bold">{formatted}</div>
     },
   },
   {
@@ -110,7 +118,7 @@ export const columns: ColumnDef<Claim>[] = [
   },
   {
     accessorKey: "date",
-    header: "Submission Date",
+    header: "Submitted",
     cell: ({ row }) => formatDate(row.getValue("date")),
   },
   {
@@ -129,11 +137,11 @@ export const columns: ColumnDef<Claim>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/claims/${claim.id}`}>View Details</Link>
+              <Link href={`/claims/${claim.id}`}>View Detailed Analysis</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>Triage Denial</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Generate Appeal</DropdownMenuItem>
+            <DropdownMenuItem>Generate AI Appeal</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )

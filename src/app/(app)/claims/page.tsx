@@ -13,7 +13,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
-import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench, AlertCircle } from "lucide-react"
+import { DollarSign, FileText, AlertTriangle, CheckCircle, Loader, FileWarning, Wrench, AlertCircle, ArrowRight } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -40,8 +40,12 @@ function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
       <div className="p-4 bg-muted/50 text-sm space-y-4">
           <div>
             <h4 className="font-semibold mb-2">Service Details</h4>
-            <p><span className="text-muted-foreground w-28 inline-block">Procedure:</span> {claim.procedure}</p>
-            <p><span className="text-muted-foreground w-28 inline-block">Diagnosis:</span> {claim.diagnosis}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><span className="text-muted-foreground w-28 inline-block">Procedure:</span> {claim.procedure}</div>
+                <div><span className="text-muted-foreground w-28 inline-block">Diagnosis:</span> {claim.diagnosis}</div>
+                <div><span className="text-muted-foreground w-28 inline-block">Submission:</span> {claim.submissionType} ({claim.formType})</div>
+                <div><span className="text-muted-foreground w-28 inline-block">Priority:</span> {claim.priority}</div>
+            </div>
           </div>
           {claim.aiSuggestions && claim.aiSuggestions.length > 0 && (
               <div>
@@ -71,23 +75,27 @@ function renderClaimSubComponent({ row }: { row: Row<Claim> }) {
 
 function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Claim[]; onPayerSelect: (payer: string) => void; selectedPayer: string | null; }) {
     const arSummaryData = useMemo(() => {
-        const daysSince = (val: string | Timestamp): number => {
+        const daysSince = (val: any): number => {
             const date = val instanceof Timestamp ? val.toDate() : new Date(val);
+            if (isNaN(date.getTime())) return 0;
             const today = new Date();
             const differenceInTime = today.getTime() - date.getTime();
             return Math.floor(differenceInTime / (1000 * 3600 * 24));
         };
         
+        // Aging only makes sense for unpaid claims
         const outstandingClaims = data.filter(c => c.status !== 'Paid');
         
         const arDataByPayer = outstandingClaims.reduce((acc, claim) => {
-            const payerData = acc[claim.payer] || {
-                payerName: claim.payer,
+            const payerName = claim.payer || 'Unknown Payer';
+            const payerData = acc[payerName] || {
+                payerName: payerName,
                 age_0_30: 0,
                 age_31_60: 0,
                 age_61_90: 0,
                 age_over_90: 0,
                 balance: 0,
+                count: 0
             };
 
             const age = daysSince(claim.date);
@@ -103,8 +111,9 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
             }
 
             payerData.balance += claim.amount;
+            payerData.count += 1;
             
-            acc[claim.payer] = payerData;
+            acc[payerName] = payerData;
             return acc;
         }, {} as Record<string, any>);
 
@@ -123,29 +132,29 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
     }, [arSummaryData]);
     
     const formatCurrency = (amount: number) => {
-      return '$' + new Intl.NumberFormat("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+      return new Intl.NumberFormat("en-US", {
+        style: 'currency',
+        currency: 'USD',
       }).format(amount)
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>A/R Activities</CardTitle>
-                <CardDescription>Main Summary by Insurance. Click a row to filter claims below.</CardDescription>
+        <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Accounts Receivable Summary</CardTitle>
+                <CardDescription>Main Summary by Insurance. Click a payer row to filter the claims list below.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[250px] pl-4">Insurance</TableHead>
-                                <TableHead className="text-right">0-30</TableHead>
-                                <TableHead className="text-right">31-60</TableHead>
-                                <TableHead className="text-right">61-90</TableHead>
-                                <TableHead className="text-right">&gt; 90</TableHead>
-                                <TableHead className="text-right pr-4">Balance</TableHead>
+                            <TableRow className="bg-muted/30">
+                                <TableHead className="w-[200px] pl-4">Insurance Payer</TableHead>
+                                <TableHead className="text-right">0-30 Days</TableHead>
+                                <TableHead className="text-right">31-60 Days</TableHead>
+                                <TableHead className="text-right">61-90 Days</TableHead>
+                                <TableHead className="text-right">&gt; 90 Days</TableHead>
+                                <TableHead className="text-right pr-4 font-bold">Total Balance</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -154,11 +163,14 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
                                     key={row.payerName}
                                     onClick={() => onPayerSelect(row.payerName)}
                                     className={cn(
-                                        "cursor-pointer",
-                                        selectedPayer === row.payerName && "bg-accent/50 hover:bg-accent/60"
+                                        "cursor-pointer transition-colors group",
+                                        selectedPayer === row.payerName ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-muted/50"
                                     )}
                                 >
-                                    <TableCell className="font-medium pl-4">{row.payerName}</TableCell>
+                                    <TableCell className="font-medium pl-4 flex items-center gap-2">
+                                        {row.payerName}
+                                        {selectedPayer === row.payerName && <ArrowRight className="h-3 w-3 text-primary animate-pulse" />}
+                                    </TableCell>
                                     <TableCell className="text-right">{formatCurrency(row.age_0_30)}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(row.age_31_60)}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(row.age_61_90)}</TableCell>
@@ -167,21 +179,21 @@ function ARSummaryByInsurance({ data, onPayerSelect, selectedPayer }: { data: Cl
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                        No A/R data for this view.
+                                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
+                                        No outstanding balances found for this view.
                                     </TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
                         {arSummaryData.length > 0 && (
-                            <TableFooter>
+                            <TableFooter className="bg-muted/20">
                                 <TableRow>
-                                    <TableHead className="pl-4">Total</TableHead>
-                                    <TableHead className="text-right">{formatCurrency(totals.age_0_30)}</TableHead>
-                                    <TableHead className="text-right">{formatCurrency(totals.age_31_60)}</TableHead>
-                                    <TableHead className="text-right">{formatCurrency(totals.age_61_90)}</TableHead>
-                                    <TableHead className="text-right">{formatCurrency(totals.age_over_90)}</TableHead>
-                                    <TableHead className="text-right font-bold pr-4">{formatCurrency(totals.balance)}</TableHead>
+                                    <TableCell className="pl-4 font-bold">Grand Total</TableCell>
+                                    <TableCell className="text-right font-semibold">{formatCurrency(totals.age_0_30)}</TableCell>
+                                    <TableCell className="text-right font-semibold">{formatCurrency(totals.age_31_60)}</TableCell>
+                                    <TableCell className="text-right font-semibold">{formatCurrency(totals.age_61_90)}</TableCell>
+                                    <TableCell className="text-right font-semibold">{formatCurrency(totals.age_over_90)}</TableCell>
+                                    <TableCell className="text-right font-bold pr-4 text-primary">{formatCurrency(totals.balance)}</TableCell>
                                 </TableRow>
                             </TableFooter>
                         )}
@@ -210,6 +222,11 @@ export default function ClaimsPage() {
 
   const handlePayerSelect = (payerName: string) => {
     setSelectedPayer(current => current === payerName ? null : payerName);
+    // Optional: smooth scroll to the results header
+    const resultsHeader = document.getElementById('claims-results-header');
+    if (resultsHeader) {
+        resultsHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
   
   const claimsForTab = useMemo(() => {
@@ -253,16 +270,19 @@ export default function ClaimsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Claims"
-        description="Track, manage, and resolve all your medical claims."
+        title="Claims Workbench"
+        description="Track, manage, and resolve all your medical claims in real-time."
         action={
-            <Link href="/claims/new" passHref>
-                <Button>New Claim</Button>
-            </Link>
+            <Button asChild>
+                <Link href="/claims/new">
+                    <FileText className="mr-2 h-4 w-4" /> New Claim
+                </Link>
+            </Button>
         }
       />
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
@@ -271,7 +291,7 @@ export default function ClaimsPage() {
                 <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-md transition-shadow border-success/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Paid</CardTitle>
                 <CheckCircle className="h-4 w-4 text-success" />
@@ -280,7 +300,7 @@ export default function ClaimsPage() {
                 <div className="text-2xl font-bold">{stats.paid}</div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-md transition-shadow border-accent/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">In Process</CardTitle>
                 <Loader className="h-4 w-4 text-accent" />
@@ -289,7 +309,7 @@ export default function ClaimsPage() {
                 <div className="text-2xl font-bold">{stats.pending}</div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-md transition-shadow border-destructive/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Attention Needed</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -301,35 +321,66 @@ export default function ClaimsPage() {
       </div>
 
        <Tabs defaultValue="all" value={activeTab} onValueChange={(tab) => { setActiveTab(tab); setSelectedPayer(null); }} className="w-full">
-            <TabsList>
+            <TabsList className="bg-muted/50 p-1">
                 <TabsTrigger value="all">All Claims</TabsTrigger>
-                <TabsTrigger value="attention">Attention Needed</TabsTrigger>
+                <TabsTrigger value="attention" className="data-[state=active]:text-destructive">Attention Needed</TabsTrigger>
                 <TabsTrigger value="in-process">In Process</TabsTrigger>
-                <TabsTrigger value="paid">Paid</TabsTrigger>
+                <TabsTrigger value="paid" className="data-[state=active]:text-success">Paid</TabsTrigger>
             </TabsList>
-            <TabsContent value={activeTab} className="mt-4 space-y-6">
+            
+            <TabsContent value={activeTab} className="mt-6 space-y-8">
                 <ARSummaryByInsurance 
                     data={claimsForTab}
                     selectedPayer={selectedPayer}
                     onPayerSelect={handlePayerSelect}
                 />
-                <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        {selectedPayer ? `Claims for ${selectedPayer}` : `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Claims`}
-                    </h2>
-                    {selectedPayer && (
-                        <Button variant="outline" onClick={() => setSelectedPayer(null)}>Show All Payers</Button>
-                    )}
+                
+                <div className="space-y-4">
+                    <div id="claims-results-header" className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+                        <div>
+                            <h2 className="text-2xl font-semibold tracking-tight">
+                                {selectedPayer ? `Claims for ${selectedPayer}` : `${activeTab === 'all' ? 'Detailed' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Claims List`}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">Showing {filteredClaims.length} records</p>
+                        </div>
+                        {selectedPayer && (
+                            <Button variant="outline" size="sm" onClick={() => setSelectedPayer(null)}>
+                                <XCircle className="mr-2 h-4 w-4" /> Clear Payer Filter
+                            </Button>
+                        )}
+                    </div>
+                    
+                    <DataTable 
+                        columns={columns} 
+                        data={filteredClaims} 
+                        filterColumn="patient" 
+                        filterPlaceholder="Search by patient name..."
+                        renderSubComponent={renderClaimSubComponent}
+                    />
                 </div>
-                <DataTable 
-                    columns={columns} 
-                    data={filteredClaims} 
-                    filterColumn="patient" 
-                    filterPlaceholder="Filter by patient name..."
-                    renderSubComponent={renderClaimSubComponent}
-                />
             </TabsContent>
         </Tabs>
     </div>
   )
+}
+
+function XCircle(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <circle cx="12" cy="12" r="10" />
+            <path d="m15 9-6 6" />
+            <path d="m9 9 6 6" />
+        </svg>
+    )
 }
