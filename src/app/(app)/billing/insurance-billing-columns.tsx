@@ -19,7 +19,7 @@ export const insuranceBillingColumns: ColumnDef<Claim>[] = [
   {
     id: "index",
     header: "",
-    cell: ({ row }) => <span className="font-bold text-[10px]">{row.index + 1}.</span>,
+    cell: ({ row }) => <span className="font-bold text-[10px] text-muted-foreground">{row.index + 1}.</span>,
     size: 30,
   },
   {
@@ -40,7 +40,7 @@ export const insuranceBillingColumns: ColumnDef<Claim>[] = [
     header: "Type",
     cell: ({ row }) => (
         <Select defaultValue={row.getValue("submissionType")}>
-            <SelectTrigger className="h-5 text-[9px] w-16 p-1 bg-white border-none shadow-none">
+            <SelectTrigger className="h-5 text-[9px] w-16 p-1 bg-background border-none shadow-none">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -60,24 +60,24 @@ export const insuranceBillingColumns: ColumnDef<Claim>[] = [
   {
     accessorKey: "provider",
     header: "Provider",
-    cell: ({ row }) => <span className="text-[10px] text-blue-700 font-medium cursor-pointer hover:underline uppercase">{row.getValue("provider")}</span>,
+    cell: ({ row }) => <span className="text-[10px] text-primary font-medium cursor-pointer hover:underline uppercase">{row.getValue("provider")}</span>,
   },
   {
     accessorKey: "payer",
     header: "Insurance",
-    cell: ({ row }) => <span className="text-[10px] text-blue-700 font-bold cursor-pointer hover:underline uppercase">{row.getValue("payer")}</span>,
+    cell: ({ row }) => <span className="text-[10px] text-primary font-bold cursor-pointer hover:underline uppercase">{row.getValue("payer")}</span>,
   },
   {
     accessorKey: "priority",
     header: "Priority",
-    cell: ({ row }) => <span className="text-[10px] text-blue-700 font-medium uppercase">{row.getValue("priority")}</span>,
+    cell: ({ row }) => <span className="text-[10px] text-primary font-medium uppercase">{row.getValue("priority")}</span>,
     size: 100,
   },
   {
     accessorKey: "claimCount",
     header: "Claims",
      cell: ({ row }) => {
-      return <div className="text-center text-[10px] text-blue-700 font-bold">{row.getValue("claimCount") || 1}</div>
+      return <div className="text-center text-[10px] text-primary font-bold">{row.getValue("claimCount") || 1}</div>
     },
     size: 60,
   },
@@ -91,7 +91,7 @@ export const insuranceBillingColumns: ColumnDef<Claim>[] = [
         maximumFractionDigits: 2,
       }).format(amount)
 
-      return <div className="text-right text-[10px] pr-2">{formatted}</div>
+      return <div className="text-right text-[10px] pr-2 font-mono">{formatted}</div>
     },
     size: 100,
   },
