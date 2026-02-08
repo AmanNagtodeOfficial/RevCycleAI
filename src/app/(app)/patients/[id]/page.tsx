@@ -74,7 +74,7 @@ function AddDocumentDialog({ patientId, practiceId }: { patientId: string, pract
 
         setIsSaving(true);
         const formData = new FormData(event.currentTarget);
-        const name = formData.get('name') as string;
+        const docName = formData.get('name') as string;
         const category = formData.get('category') as string;
 
         const reader = new FileReader();
@@ -86,7 +86,7 @@ function AddDocumentDialog({ patientId, practiceId }: { patientId: string, pract
                 await addDoc(collection(firestore, 'patientDocuments'), {
                     patientId,
                     practiceId,
-                    name: name || selectedFile.name,
+                    name: docName || selectedFile.name,
                     category: category,
                     dateUploaded: serverTimestamp(),
                     url: fileDataUri 
@@ -97,7 +97,7 @@ function AddDocumentDialog({ patientId, practiceId }: { patientId: string, pract
                     user: 'Admin',
                     avatar: 'https://picsum.photos/seed/admin/40/40',
                     action: 'stored original document in database:',
-                    target: name || selectedFile.name,
+                    target: docName || selectedFile.name,
                     time: 'Just now',
                     practiceId: practiceId,
                     createdAt: serverTimestamp()
@@ -474,7 +474,7 @@ export default function PatientDetailPage() {
                         <>
                          <Separator />
                          <div className="flex flex-col space-y-2">
-                            <h4 className="font-medium flex items-center gap-2"><Briefcase className="w-4 h-4" />Secondary Insurance</h4>
+                            <h4 className="font-medium flex items-center gap-2"><Briefcase className="h-5 w-5" />Secondary Insurance</h4>
                             <div className="pl-6 space-y-1">
                                 <div className="flex items-center gap-3"><Shield className="w-4 h-4 text-muted-foreground" />{patient.secondaryInsuranceProvider}</div>
                                 <div className="flex items-center gap-3"><span className="text-muted-foreground text-xs w-16">Policy #:</span><span>{patient.secondaryInsuranceId}</span></div>
