@@ -17,14 +17,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react';
+import { Loader, PlusCircle, Trash2, Link as LinkIcon, FileText, Printer, Check } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePractice } from '@/context/practice-context';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, addDoc, query, where, Timestamp } from 'firebase/firestore';
 import { Patient, Appointment, Claim } from '@/lib/data';
-
+import { cn } from '@/lib/utils';
 
 type ServiceLine = {
   id: number;
@@ -84,6 +84,10 @@ export default function NewClaimPage() {
   const [patientDob, setPatientDob] = useState('');
   const [patientId, setPatientId] = useState('');
   const [patientAddress, setPatientAddress] = useState('');
+  const [patientCity, setPatientCity] = useState('');
+  const [patientState, setPatientState] = useState('');
+  const [patientZip, setPatientZip] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
   const [isSubscriberSame, setIsSubscriberSame] = useState(true);
   const [subscriberName, setSubscriberName] = useState('');
   const [payer, setPayer] = useState('');
@@ -107,7 +111,11 @@ export default function NewClaimPage() {
     setPatientName(patient.name);
     setPatientDob(patient.dob);
     setPatientId(patient.id);
-    setPatientAddress(`${patient.address}, ${patient.city}, ${patient.state} ${patient.zip}`);
+    setPatientAddress(patient.address);
+    setPatientCity(patient.city);
+    setPatientState(patient.state);
+    setPatientZip(patient.zip);
+    setPatientPhone(patient.phone);
     
     setSubscriberName(patient.subscriberName);
     const subscriberIsPatient = patient.subscriberRelationship === 'Self';
@@ -181,18 +189,6 @@ export default function NewClaimPage() {
       )
   }
 
-  const handleAddArrayField = (id: number, field: 'modifiers' | 'diagPointers') => {
-      setServiceLines(
-          serviceLines.map(line => {
-              if (line.id === id && line[field].length < 4) {
-                  const newArray = [...line[field], ''];
-                  return {...line, [field]: newArray};
-              }
-              return line;
-          })
-      )
-  }
-
   const handleDxCodeChange = (index: number, value: string) => {
     const newDxCodes = [...dxCodes];
     newDxCodes[index] = value.toUpperCase();
@@ -239,7 +235,7 @@ export default function NewClaimPage() {
         await addDoc(collection(firestore, 'claims'), newClaim);
         toast({
             title: "Claim Submitted Successfully",
-            description: `Claim for ${patientName} has been created with a total charge of $${totalCharges.toFixed(2)}.`,
+            description: `Claim for ${patientName} has been created.`,
         });
         router.push('/claims');
     } catch(e: any) {
@@ -258,22 +254,26 @@ export default function NewClaimPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <PageHeader 
         title="New Professional Claim (CMS-1500)" 
-        description="Manually create and submit a new claim, modeled after the CMS-1500 form." 
+        description="Standard professional medical claim form used for billing." 
+        action={
+            <div className="flex gap-2">
+                <Button variant="outline"><Printer className="h-4 w-4 mr-2" /> Print Preview</Button>
+                <Button variant="outline"><FileText className="h-4 w-4 mr-2" /> Validate</Button>
+            </div>
+        }
       />
-       <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-accent"/> Link to Patient Visit</CardTitle>
-            <CardDescription>Select a completed visit to automatically populate claim information.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-w-md">
-                 <Label htmlFor="visit-select">Completed Visits</Label>
+
+      <Card className="border-accent/20 bg-accent/5">
+          <CardContent className="p-4 flex items-center gap-4">
+            <LinkIcon className="h-5 w-5 text-accent"/>
+            <div className="flex-1">
+                <Label htmlFor="visit-select" className="text-xs font-bold uppercase text-accent-foreground/70">Link Completed Patient Visit</Label>
                 <Select value={selectedVisitId} onValueChange={setSelectedVisitId}>
-                    <SelectTrigger id="visit-select">
-                        <SelectValue placeholder="Select a visit to pre-fill form..." />
+                    <SelectTrigger id="visit-select" className="mt-1 h-9 bg-background">
+                        <SelectValue placeholder="Select a visit to auto-populate the CMS-1500 form..." />
                     </SelectTrigger>
                     <SelectContent>
                         {completedVisits.map(visit => (
@@ -285,219 +285,236 @@ export default function NewClaimPage() {
                 </Select>
             </div>
           </CardContent>
-        </Card>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="patient-name">Patient Name</Label>
-                <Input id="patient-name" value={patientName} onChange={e => setPatientName(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patient-dob">Date of Birth</Label>
-                <Input id="patient-dob" type="date" value={patientDob} onChange={e => setPatientDob(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patient-id">Patient ID</Label>
-                <Input id="patient-id" value={patientId} onChange={e => setPatientId(e.target.value)} required />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="patient-address">Patient Address</Label>
-              <Input id="patient-address" value={patientAddress} onChange={e => setPatientAddress(e.target.value)} required />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-            <CardHeader>
-                <CardTitle>Subscriber & Payer Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="flex items-center space-x-2">
-                    <Checkbox id="insured-same-as-patient" checked={isSubscriberSame} onCheckedChange={(checked) => setIsSubscriberSame(!!checked)} />
-                    <Label htmlFor="insured-same-as-patient">
-                        Subscriber is the same as the patient
-                    </Label>
-                </div>
-                 <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="subscriber-name">Subscriber Name</Label>
-                        <Input id="subscriber-name" value={subscriberName} onChange={e => setSubscriberName(e.target.value)} required disabled={isSubscriberSame} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="payer">Payer</Label>
-                         <Select required value={payer} onValueChange={setPayer}>
-                            <SelectTrigger id="payer">
-                                <SelectValue placeholder="Select a payer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="aetna">Aetna</SelectItem>
-                                <SelectItem value="cigna">Cigna</SelectItem>
-                                <SelectItem value="uhc">United Healthcare</SelectItem>
-                                <SelectItem value="bcbs">BlueCross BlueShield</SelectItem>
-                                <SelectItem value="humana">Humana</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                 </div>
-                 <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="policy-id">Policy ID</Label>
-                        <Input id="policy-id" value={policyId} onChange={e => setPolicyId(e.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="group-id">Group Number</Label>
-                        <Input id="group-id" value={groupId} onChange={e => setGroupId(e.target.value)} />
-                    </div>
-                 </div>
-            </CardContent>
-        </Card>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Clinical & Provider Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <Label>Diagnosis Codes (ICD-10)</Label>
-            <div className="grid md:grid-cols-6 gap-4">
-                {dxCodes.map((code, index) => (
-                    <Input 
-                        key={index}
-                        placeholder={`${String.fromCharCode(65 + index)}. (Primary)`}
-                        required={index === 0}
-                        value={code}
-                        onChange={e => handleDxCodeChange(index, e.target.value)}
-                    />
-                ))}
-            </div>
-             <div className="grid md:grid-cols-2 gap-6 pt-4">
-                <div className="space-y-2">
-                    <Label htmlFor="provider">Rendering Provider</Label>
-                    <Select required value={provider} onValueChange={setProvider}>
-                        <SelectTrigger id="provider">
-                            <SelectValue placeholder="Select a provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {providers.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* CMS-1500 Form Emulator */}
+        <div className="border-2 border-destructive/20 bg-background rounded-sm shadow-xl max-w-5xl mx-auto overflow-hidden text-[10px]">
+            {/* Form Header */}
+            <div className="bg-destructive/10 border-b-2 border-destructive/20 p-2 flex justify-between items-center">
+                <div className="font-bold text-destructive/80 uppercase">Health Insurance Claim Form</div>
+                <div className="flex items-center gap-4 text-[9px] font-medium uppercase text-muted-foreground">
+                    <span>Approved OMB-0938-1197</span>
+                    <span className="font-bold border border-destructive/20 px-2">Form CMS-1500 (02-12)</span>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="referring-provider">Referring Provider Name (Optional)</Label>
-                    <Input id="referring-provider" placeholder="Dr. Alan Grant" value={referringProvider} onChange={e => setReferringProvider(e.target.value)} />
-                </div>
-             </div>
-             <div className="pt-2 space-y-2">
-                <Label htmlFor="prior-auth">Prior Authorization Number (Optional)</Label>
-                <Input id="prior-auth" placeholder="e.g., AUTH123456789" value={priorAuth} onChange={e => setPriorAuth(e.target.value)} />
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Service Lines</CardTitle>
-            <CardDescription>
-              Detail each service provided. All fields are required for each line.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {serviceLines.length === 0 && (
-                <div className="text-center text-muted-foreground py-10 border-2 border-dashed rounded-lg">
-                    <p>No service lines added.</p>
-                    <p className="text-sm">Add a service line below or select a visit to auto-populate.</p>
+            {/* Carrier Block (Box 1) */}
+            <div className="grid grid-cols-12 border-b border-destructive/20 divide-x divide-destructive/20">
+                <div className="col-span-12 p-2 bg-destructive/5">
+                    <Label className="text-[9px] font-bold text-destructive uppercase">1. Medicare / Medicaid / TRICARE / CHAMPVA / GROUP / FECA / OTHER</Label>
+                    <div className="flex gap-6 mt-1">
+                        {['Medicare', 'Medicaid', 'TRICARE', 'CHAMPVA', 'Group', 'FECA', 'Other'].map(type => (
+                            <div key={type} className="flex items-center gap-1.5">
+                                <div className={cn("w-3 h-3 border border-destructive/40 flex items-center justify-center", (type.toLowerCase() === payer || (type === 'Group' && payer === 'bcbs')) && "bg-destructive/20")}>
+                                    {(type.toLowerCase() === payer || (type === 'Group' && payer === 'bcbs')) && <Check className="h-2.5 w-2.5 text-destructive" />}
+                                </div>
+                                <span className="font-semibold">{type}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            )}
-            {serviceLines.map((line, index) => (
-              <div key={line.id} className="grid grid-cols-12 gap-2 items-end p-3 rounded-md border bg-muted/10">
-                <div className="col-span-12"><p className="font-medium text-sm">Line {index+1}</p></div>
-                <div className="col-span-6 md:col-span-2 space-y-1">
-                  <Label htmlFor={`dos-${line.id}`} className="text-xs">Date of Service</Label>
-                  <Input id={`dos-${line.id}`} type="date" required value={line.dateOfService} onChange={e => handleServiceLineChange(line.id, 'dateOfService', e.target.value)} />
+            </div>
+
+            {/* Patient & Insured Section (Boxes 2-13) */}
+            <div className="grid grid-cols-12 border-b border-destructive/20 divide-x divide-destructive/20">
+                {/* Left Column (Patient) */}
+                <div className="col-span-6 divide-y divide-destructive/20">
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">2. Patient's Name (Last Name, First Name, Middle Initial)</Label>
+                        <Input value={patientName} onChange={e => setPatientName(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                    </div>
+                    <div className="p-2 min-h-[45px] grid grid-cols-2 divide-x divide-destructive/20 -mx-2">
+                        <div className="px-2">
+                            <Label className="text-[8px] font-bold text-destructive uppercase">3. Patient's Birth Date</Label>
+                            <Input type="date" value={patientDob} onChange={e => setPatientDob(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                        </div>
+                        <div className="px-2">
+                            <Label className="text-[8px] font-bold text-destructive uppercase">Sex</Label>
+                            <div className="flex gap-4 mt-1">
+                                <span className="flex items-center gap-1"><div className="w-2.5 h-2.5 border border-destructive/40" /> M</span>
+                                <span className="flex items-center gap-1"><div className="w-2.5 h-2.5 border border-destructive/40" /> F</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">5. Patient's Address (No., Street)</Label>
+                        <Input value={patientAddress} onChange={e => setPatientAddress(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                    </div>
+                    <div className="grid grid-cols-3 divide-x divide-destructive/20">
+                        <div className="p-2 min-h-[45px]">
+                            <Label className="text-[8px] font-bold text-destructive uppercase">City</Label>
+                            <Input value={patientCity} onChange={e => setPatientCity(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                        </div>
+                        <div className="p-2 min-h-[45px]">
+                            <Label className="text-[8px] font-bold text-destructive uppercase">State</Label>
+                            <Input value={patientState} onChange={e => setPatientState(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                        </div>
+                        <div className="p-2 min-h-[45px]">
+                            <Label className="text-[8px] font-bold text-destructive uppercase">Zip Code</Label>
+                            <Input value={patientZip} onChange={e => setPatientZip(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                        </div>
+                    </div>
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">Patient's Relationship to Insured</Label>
+                        <div className="flex gap-6 mt-1 font-bold">
+                            {['Self', 'Spouse', 'Child', 'Other'].map(rel => (
+                                <span key={rel} className="flex items-center gap-1">
+                                    <div className={cn("w-2.5 h-2.5 border border-destructive/40", (rel === 'Self' && isSubscriberSame) && "bg-destructive/20")} /> {rel}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                <div className="col-span-6 md:col-span-1 space-y-1">
-                  <Label htmlFor={`pos-${line.id}`} className="text-xs">POS</Label>
-                  <Input id={`pos-${line.id}`} required placeholder="e.g. 11" value={line.placeOfService} onChange={e => handleServiceLineChange(line.id, 'placeOfService', e.target.value)} />
+
+                {/* Right Column (Insured) */}
+                <div className="col-span-6 divide-y divide-destructive/20">
+                    <div className="p-2 min-h-[45px] bg-destructive/5">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">1a. Insured's I.D. Number</Label>
+                        <Input value={policyId} onChange={e => setPolicyId(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px] bg-transparent" />
+                    </div>
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">4. Insured's Name (Last Name, First Name, Middle Initial)</Label>
+                        <Input value={subscriberName} onChange={e => setSubscriberName(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                    </div>
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">7. Insured's Address (No., Street)</Label>
+                        <Input className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" placeholder="(Same as Patient)" />
+                    </div>
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">11. Insured's Policy Group or FECA Number</Label>
+                        <Input value={groupId} onChange={e => setGroupId(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                    </div>
+                    <div className="p-2 min-h-[45px]">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">Insurance Plan Name or Program Name</Label>
+                        <Input value={payer.toUpperCase()} readOnly className="h-6 border-none focus-visible:ring-0 px-0 font-black text-primary text-[11px] uppercase" />
+                    </div>
                 </div>
-                <div className="col-span-12 md:col-span-2 space-y-1">
-                  <Label htmlFor={`cpt-${line.id}`} className="text-xs">Procedure (CPT)</Label>
-                  <Input id={`cpt-${line.id}`} required placeholder="e.g. 99214" value={line.procedureCode} onChange={e => handleServiceLineChange(line.id, 'procedureCode', e.target.value)} />
+            </div>
+
+            {/* Clinical Section (Boxes 14-23) */}
+            <div className="grid grid-cols-12 border-b border-destructive/20 divide-x divide-destructive/20 bg-muted/10">
+                <div className="col-span-8 p-2 divide-y divide-destructive/20">
+                    <div className="pb-2">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">21. Diagnosis or Nature of Illness or Injury (Relate Lines 1, 2, 3 or 4 to Item 24E by Line)</Label>
+                        <div className="grid grid-cols-4 gap-2 mt-2">
+                            {dxCodes.map((code, idx) => (
+                                <div key={idx} className="flex items-center gap-1">
+                                    <span className="font-bold text-destructive/60">{String.fromCharCode(65 + idx)}.</span>
+                                    <Input 
+                                        value={code} 
+                                        onChange={e => handleDxCodeChange(idx, e.target.value)} 
+                                        className="h-6 border-destructive/20 focus-visible:ring-0 font-bold uppercase text-[10px]"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="col-span-4 p-2 divide-y divide-destructive/20">
+                    <div className="pb-2">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">17. Name of Referring Provider or Other Source</Label>
+                        <Input value={referringProvider} onChange={e => setReferringProvider(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                    </div>
+                    <div className="pt-2">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">23. Prior Authorization Number</Label>
+                        <Input value={priorAuth} onChange={e => setPriorAuth(e.target.value)} className="h-6 border-none focus-visible:ring-0 px-0 font-bold uppercase text-[11px]" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Service Lines Grid (Box 24) */}
+            <div className="border-b border-destructive/20">
+                <div className="grid grid-cols-12 bg-destructive/10 text-[8px] font-bold uppercase text-destructive border-b border-destructive/20 divide-x divide-destructive/20 text-center">
+                    <div className="col-span-2 py-1">24. A. Date(s) of Service</div>
+                    <div className="col-span-1 py-1">B. POS</div>
+                    <div className="col-span-3 py-1">D. Procedures, Services, or Supplies</div>
+                    <div className="col-span-2 py-1">E. Diagnosis Pointer</div>
+                    <div className="col-span-1 py-1">F. $ Charges</div>
+                    <div className="col-span-1 py-1">G. Units</div>
+                    <div className="col-span-2 py-1">H. EPSDT/Family Plan</div>
                 </div>
                 
-                <div className="col-span-12 md:col-span-3 flex items-end gap-1">
-                    {line.modifiers.map((mod, modIndex) => (
-                        <div key={modIndex} className="space-y-1 flex-1">
-                            <Label htmlFor={`mod${modIndex}-${line.id}`} className="text-xs">Mod {modIndex + 1}</Label>
-                            <Input id={`mod${modIndex}-${line.id}`} value={mod} onChange={e => handleArrayFieldChange(line.id, 'modifiers', modIndex, e.target.value)} />
+                {serviceLines.map((line, idx) => (
+                    <div key={line.id} className="grid grid-cols-12 divide-x divide-destructive/20 border-b border-destructive/10 hover:bg-muted/5 group">
+                        <div className="col-span-2 p-1">
+                            <Input type="date" value={line.dateOfService} onChange={e => handleServiceLineChange(line.id, 'dateOfService', e.target.value)} className="h-6 border-none focus-visible:ring-0 p-0 text-[10px] font-bold" />
                         </div>
-                    ))}
-                    {line.modifiers.length < 4 && (
-                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleAddArrayField(line.id, 'modifiers')}>
-                            <PlusCircle className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
-
-                <div className="col-span-12 md:col-span-3 flex items-end gap-1">
-                    {line.diagPointers.map((diag, diagIndex) => (
-                        <div key={diagIndex} className="space-y-1 flex-1">
-                            <Label htmlFor={`diag${diagIndex}-${line.id}`} className="text-xs">Dx {diagIndex + 1}</Label>
-                            <Input id={`diag${diagIndex}-${line.id}`} required={diagIndex === 0} maxLength={1} value={diag} onChange={e => handleArrayFieldChange(line.id, 'diagPointers', diagIndex, e.target.value)} />
+                        <div className="col-span-1 p-1">
+                            <Input value={line.placeOfService} onChange={e => handleServiceLineChange(line.id, 'placeOfService', e.target.value)} className="h-6 border-none focus-visible:ring-0 text-center p-0 text-[10px] font-bold" />
                         </div>
-                    ))}
-                    {line.diagPointers.length < 4 && (
-                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleAddArrayField(line.id, 'diagPointers')}>
-                            <PlusCircle className="h-4 w-4" />
-                        </Button>
-                    )}
+                        <div className="col-span-3 p-1 flex gap-1">
+                            <Input value={line.procedureCode} onChange={e => handleServiceLineChange(line.id, 'procedureCode', e.target.value)} placeholder="CPT/HCPCS" className="h-6 border-none focus-visible:ring-0 p-0 text-[10px] font-bold flex-1" />
+                            {line.modifiers.map((mod, midx) => (
+                                <Input key={midx} value={mod} onChange={e => handleArrayFieldChange(line.id, 'modifiers', midx, e.target.value)} className="h-6 w-6 border-none focus-visible:ring-0 p-0 text-[10px] text-center" />
+                            ))}
+                        </div>
+                        <div className="col-span-2 p-1 flex gap-1 justify-center">
+                            {line.diagPointers.map((ptr, pidx) => (
+                                <Input key={pidx} value={ptr} onChange={e => handleArrayFieldChange(line.id, 'diagPointers', pidx, e.target.value)} className="h-6 w-6 border-none focus-visible:ring-0 p-0 text-[10px] text-center font-bold" />
+                            ))}
+                        </div>
+                        <div className="col-span-1 p-1">
+                            <Input type="number" value={line.charges} onChange={e => handleServiceLineChange(line.id, 'charges', e.target.value)} className="h-6 border-none focus-visible:ring-0 p-0 text-[10px] font-bold text-right pr-1" />
+                        </div>
+                        <div className="col-span-1 p-1">
+                            <Input type="number" value={line.units} onChange={e => handleServiceLineChange(line.id, 'units', e.target.value)} className="h-6 border-none focus-visible:ring-0 p-0 text-[10px] font-bold text-center" />
+                        </div>
+                        <div className="col-span-2 p-1 flex items-center justify-between">
+                            <span className="text-[8px] font-bold text-muted-foreground ml-2">N/A</span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleRemoveServiceLine(line.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+                
+                <div className="p-2 bg-destructive/5 flex justify-between items-center">
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddServiceLine} className="h-7 text-[9px] font-bold border-destructive/20 text-destructive uppercase">
+                        <PlusCircle className="mr-1.5 h-3 w-3" /> Add Service Line
+                    </Button>
+                    <div className="flex gap-8 text-[11px] font-bold">
+                        <div className="flex items-center gap-2">
+                            <span className="text-destructive">28. TOTAL CHARGE:</span>
+                            <span className="font-black">${totalCharges.toFixed(2)}</span>
+                        </div>
+                    </div>
                 </div>
-
-                 <div className="col-span-4 md:col-span-1 space-y-1">
-                  <Label htmlFor={`units-${line.id}`} className="text-xs">Units</Label>
-                  <Input id={`units-${line.id}`} type="number" required value={line.units} onChange={e => handleServiceLineChange(line.id, 'units', e.target.value)} />
-                </div>
-                 <div className="col-span-4 md:col-span-1 space-y-1">
-                  <Label htmlFor={`charges-${line.id}`} className="text-xs">Charges ($)</Label>
-                  <Input id={`charges-${line.id}`} type="number" required placeholder="150.00" value={line.charges} onChange={e => handleServiceLineChange(line.id, 'charges', e.target.value)} />
-                </div>
-                <div className="col-span-4 md:col-span-1 flex items-center">
-                    {serviceLines.length > 1 && (
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveServiceLine(line.id)} className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Remove line</span>
-                        </Button>
-                    )}
-                </div>
-              </div>
-            ))}
-             <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddServiceLine}
-              className="mt-2"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Service Line
-            </Button>
-          </CardContent>
-          <CardFooter className="flex justify-end bg-muted/50 p-4 mt-4 rounded-b-lg">
-            <div className="font-bold text-lg">
-              Total Charges: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalCharges)}
             </div>
-          </CardFooter>
-        </Card>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
-          <Button type="submit" disabled={isSubmitting}>
-             {isSubmitting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-             Submit Claim
+            {/* Provider Section (Boxes 25-33) */}
+            <div className="grid grid-cols-12 divide-x divide-destructive/20">
+                <div className="col-span-4 p-2 space-y-2">
+                    <div className="bg-destructive/5 p-1">
+                        <Label className="text-[8px] font-bold text-destructive uppercase">31. Signature of Physician or Supplier</Label>
+                        <p className="font-bold text-[11px] italic mt-1">{provider || 'Select Provider'}</p>
+                    </div>
+                </div>
+                <div className="col-span-4 p-2">
+                    <Label className="text-[8px] font-bold text-destructive uppercase">32. Service Facility Location Information</Label>
+                    <div className="mt-1 space-y-0.5 font-bold uppercase text-[9px]">
+                        <p>{selectedPractice?.name}</p>
+                        <p>123 Medical Plaza, Suite 400</p>
+                        <p>Anytown, ST 12345</p>
+                    </div>
+                </div>
+                <div className="col-span-4 p-2 bg-destructive/5">
+                    <Label className="text-[8px] font-bold text-destructive uppercase">33. Billing Provider Info & Ph #</Label>
+                    <div className="mt-1 space-y-0.5 font-bold uppercase text-[9px]">
+                        <p>{selectedPractice?.name} Revenue Dept.</p>
+                        <p>PO Box 9900</p>
+                        <p>Anytown, ST 12345</p>
+                        <p className="text-primary mt-1">NPI: 1234567890</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-6 sticky bottom-4 z-50">
+          <Button variant="outline" type="button" size="lg" className="bg-background shadow-lg" onClick={() => router.back()}>Cancel</Button>
+          <Button type="submit" disabled={isSubmitting} size="lg" className="shadow-lg px-10">
+             {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+             Submit Claim to Clearinghouse
           </Button>
         </div>
       </form>
