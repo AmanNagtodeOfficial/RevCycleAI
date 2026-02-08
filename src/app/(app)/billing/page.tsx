@@ -27,7 +27,8 @@ import {
     PlayCircle, 
     CheckSquare, 
     Square,
-    Zap
+    Zap,
+    RefreshCw
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, flexRender, ColumnFiltersState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
