@@ -3,41 +3,44 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Claim } from "@/lib/data"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Button } from "@/components/ui/button"
-import { ArrowUpDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export const insuranceBillingColumns: ColumnDef<Claim>[] = [
   {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
-      />
+    id: "indicator",
+    header: "",
+    cell: ({ row }) => (
+        <div className="w-4 flex justify-center text-primary font-bold">
+            {row.getIsSelected() ? ">" : ""}
+        </div>
     ),
+    size: 20,
+  },
+  {
+    id: "index",
+    header: "",
+    cell: ({ row }) => <span className="font-bold text-[10px]">{row.index + 1}.</span>,
+    size: 30,
+  },
+  {
+    id: "select",
+    header: "",
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
         aria-label="Select row"
-        className="translate-y-[2px]"
+        className="h-3 w-3"
       />
     ),
-    enableSorting: false,
-    enableHiding: false,
+    size: 30,
   },
   {
     accessorKey: "submissionType",
     header: "Type",
     cell: ({ row }) => (
         <Select defaultValue={row.getValue("submissionType")}>
-            <SelectTrigger className="h-7 text-[10px] w-20">
+            <SelectTrigger className="h-5 text-[9px] w-16 p-1 bg-white border-none shadow-none">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -45,49 +48,42 @@ export const insuranceBillingColumns: ColumnDef<Claim>[] = [
                 <SelectItem value="Paper">Paper</SelectItem>
             </SelectContent>
         </Select>
-    )
+    ),
+    size: 70,
   },
   {
     accessorKey: "formType",
     header: "Form",
-    cell: ({ row }) => <span className="text-[11px] font-medium">{row.getValue("formType")}</span>
+    cell: ({ row }) => <span className="text-[10px]">{row.getValue("formType")}</span>,
+    size: 80,
   },
   {
     accessorKey: "provider",
     header: "Provider",
-    cell: ({ row }) => <span className="text-[11px] uppercase">{row.getValue("provider")}</span>
+    cell: ({ row }) => <span className="text-[10px] text-blue-700 font-medium cursor-pointer hover:underline uppercase">{row.getValue("provider")}</span>,
   },
   {
     accessorKey: "payer",
     header: "Insurance",
-    cell: ({ row }) => <span className="text-[11px] font-bold text-primary cursor-pointer hover:underline uppercase">{row.getValue("payer")}</span>
+    cell: ({ row }) => <span className="text-[10px] text-blue-700 font-bold cursor-pointer hover:underline uppercase">{row.getValue("payer")}</span>,
   },
   {
     accessorKey: "priority",
     header: "Priority",
-    cell: ({ row }) => <span className="text-[11px] font-medium text-primary uppercase">{row.getValue("priority")}</span>
+    cell: ({ row }) => <span className="text-[10px] text-blue-700 font-medium uppercase">{row.getValue("priority")}</span>,
+    size: 100,
   },
   {
     accessorKey: "claimCount",
     header: "Claims",
      cell: ({ row }) => {
-      return <div className="text-center text-[11px] font-bold">{row.getValue("claimCount") || 1}</div>
+      return <div className="text-center text-[10px] text-blue-700 font-bold">{row.getValue("claimCount") || 1}</div>
     },
+    size: 60,
   },
   {
     accessorKey: "amount",
-    header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="w-full justify-end text-[11px] h-auto p-0"
-          >
-            Amount
-            <ArrowUpDown className="ml-1 h-3 w-3" />
-          </Button>
-        )
-      },
+    header: "Amount",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"))
       const formatted = new Intl.NumberFormat("en-US", {
@@ -95,7 +91,8 @@ export const insuranceBillingColumns: ColumnDef<Claim>[] = [
         maximumFractionDigits: 2,
       }).format(amount)
 
-      return <div className="text-right font-mono text-[11px] pr-2">{formatted}</div>
+      return <div className="text-right text-[10px] pr-2">{formatted}</div>
     },
+    size: 100,
   },
 ]

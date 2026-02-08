@@ -28,7 +28,21 @@ import {
     CheckSquare, 
     Square,
     Zap,
-    RefreshCw
+    RefreshCw,
+    X,
+    Minus,
+    Square as Maximize,
+    FileText,
+    Settings,
+    Briefcase,
+    LayoutGrid,
+    LineChart,
+    ChevronDown,
+    Activity,
+    Clock,
+    MousePointer2,
+    Database,
+    ShieldAlert
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SortingState, useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, flexRender, ColumnFiltersState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
@@ -92,182 +106,231 @@ function InsuranceBillingWorkbench() {
     if (isLoading) return <div className="p-8 text-center"><Loader className="h-8 w-8 animate-spin mx-auto text-primary" /></div>;
 
     return (
-        <div className="flex flex-col h-[calc(100vh-200px)] border rounded-lg bg-background overflow-hidden shadow-2xl">
-            {/* Workbench Header */}
-            <div className="bg-gradient-to-b from-primary/10 to-transparent p-2 border-b flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" /> Claim(s) Management Workbench
-                </span>
-                <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6"><Settings2 className="h-3 w-3" /></Button>
-                </div>
+        <div className="flex flex-col h-[calc(100vh-180px)] border bg-white overflow-hidden shadow-2xl rounded-sm">
+            {/* Top Menu Bar (Legacy Style) */}
+            <div className="bg-[#f0f0f0] border-b text-[10px] px-2 py-0.5 flex gap-4 font-normal">
+                {['Action', 'View', 'Setup', 'Activities', 'Billing', 'Reports', 'Utilities', 'Windows', 'Help'].map(m => (
+                    <span key={m} className="cursor-default hover:bg-primary/10 px-1">{m}</span>
+                ))}
             </div>
 
-            {/* Filter Bar */}
-            <div className="bg-muted/30 p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 xl:grid-cols-10 gap-3 items-end border-b shadow-inner">
-                <div className="space-y-1 col-span-1 md:col-span-2">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Provider:</Label>
-                    <Select defaultValue="all">
-                        <SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Providers</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1 col-span-1 md:col-span-2">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Insurance:</Label>
-                    <Select defaultValue="all">
-                        <SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Insurance</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1 col-span-1 md:col-span-2">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Patient:</Label>
-                    <Input className="h-8 text-xs bg-background" placeholder="Patient Search..." />
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Charge From:</Label>
-                    <Input type="date" className="h-8 text-xs bg-background" />
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Charge To:</Label>
-                    <Input type="date" className="h-8 text-xs bg-background" />
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Priority:</Label>
-                    <Select defaultValue="all">
-                        <SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="primary">Primary</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex flex-wrap gap-3 pb-1 justify-center xl:justify-start">
-                    <div className="flex items-center gap-1">
-                        <Checkbox id="ovd" /><Label htmlFor="ovd" className="text-[10px] font-bold">Ovd</Label>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Checkbox id="wc" /><Label htmlFor="wc" className="text-[10px] font-bold">WC</Label>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Checkbox id="scrub" defaultChecked /><Label htmlFor="scrub" className="text-[10px] font-bold">Scrub</Label>
-                    </div>
-                </div>
-                <Button className="h-8 w-full shadow-sm" size="sm"><Search className="mr-2 h-3 w-3" /> Retrieve</Button>
+            {/* Icon Toolbar (Legacy Style) */}
+            <div className="bg-[#f0f0f0] border-b px-2 py-1 flex gap-2 overflow-x-auto">
+                {[FileText, Settings, Briefcase, LayoutGrid, LineChart, Activity, Clock, MousePointer2, Database, ShieldAlert].map((Icon, idx) => (
+                    <Button key={idx} variant="ghost" size="icon" className="h-6 w-6 text-primary hover:bg-white hover:shadow-inner border border-transparent hover:border-gray-300">
+                        <Icon className="h-4 w-4" />
+                    </Button>
+                ))}
             </div>
 
-            {/* Main Workspace Layout */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Table Area */}
-                <div className="flex-1 overflow-auto border-r">
-                    <Table className="text-[11px]">
-                        <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                                    {headerGroup.headers.map((header) => (
-                                        <TableHead key={header.id} className="h-8 whitespace-nowrap font-bold text-muted-foreground uppercase text-[10px]">
-                                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                        </TableHead>
+            {/* Application Content Area */}
+            <div className="flex-1 flex flex-col p-1 bg-[#d4d0c8]">
+                <div className="flex-1 border-2 border-white shadow-inner bg-white flex flex-col overflow-hidden">
+                    {/* Workbench Window Title Bar */}
+                    <div className="bg-gradient-to-r from-[#0a246a] to-[#a6caf0] p-1 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-white p-0.5 rounded-sm">
+                                <DollarSign className="h-2 w-2 text-[#0a246a]" strokeWidth={4} />
+                            </div>
+                            <span className="text-white text-[11px] font-bold">Claim(s)</span>
+                        </div>
+                        <div className="flex gap-0.5">
+                            <Button variant="outline" className="h-4 w-4 p-0 bg-[#d4d0c8] border-none rounded-none"><Minus className="h-3 w-3" /></Button>
+                            <Button variant="outline" className="h-4 w-4 p-0 bg-[#d4d0c8] border-none rounded-none"><Maximize className="h-2 w-2" /></Button>
+                            <Button variant="outline" className="h-4 w-4 p-0 bg-[#d4d0c8] border-none rounded-none hover:bg-red-500 hover:text-white"><X className="h-3 w-3" /></Button>
+                        </div>
+                    </div>
+
+                    {/* Filter Bar (Orange/Yellow Gradient) */}
+                    <div className="bg-gradient-to-b from-[#f9c152] to-[#ff9900] p-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 items-end border-b border-gray-400">
+                        <div className="lg:col-span-2 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black uppercase">Provider:</Label>
+                            <Select defaultValue="all">
+                                <SelectTrigger className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="all">All</SelectItem></SelectContent>
+                            </Select>
+                        </div>
+                        <div className="lg:col-span-2 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black uppercase">Insurance (?)</Label>
+                            <Select defaultValue="all">
+                                <SelectTrigger className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="all">All</SelectItem></SelectContent>
+                            </Select>
+                        </div>
+                        <div className="lg:col-span-2 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black uppercase">Patient (?)</Label>
+                            <Input className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1" />
+                        </div>
+                        <div className="lg:col-span-1 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black">Charge From:</Label>
+                            <Input className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1" defaultValue="00/00/00" />
+                        </div>
+                        <div className="lg:col-span-1 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black">Charge To:</Label>
+                            <Input className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1" defaultValue="01/05/13" />
+                        </div>
+                        <div className="lg:col-span-1 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black">Priority:</Label>
+                            <Select defaultValue="all">
+                                <SelectTrigger className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="all">All</SelectItem></SelectContent>
+                            </Select>
+                        </div>
+                        <div className="lg:col-span-1 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black">Type:</Label>
+                            <Select defaultValue="both">
+                                <SelectTrigger className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="both">Both</SelectItem></SelectContent>
+                            </Select>
+                        </div>
+                        <div className="lg:col-span-1 space-y-0.5">
+                            <Label className="text-[9px] font-bold text-black">Form:</Label>
+                            <Select defaultValue="all">
+                                <SelectTrigger className="h-5 text-[10px] bg-white border-gray-400 rounded-none p-1"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="all">All</SelectItem></SelectContent>
+                            </Select>
+                        </div>
+                        <div className="lg:col-span-1 flex items-center">
+                            <Button className="h-6 text-[10px] bg-[#f0f0f0] text-black border border-gray-400 hover:bg-white px-2 py-0 shadow-sm rounded-none">
+                                <Search className="mr-1 h-3 w-3 text-primary" /> Retrieve
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Main Workspace Workspace */}
+                    <div className="flex flex-1 overflow-hidden">
+                        {/* Table Area */}
+                        <div className="flex-1 overflow-auto border-r border-gray-300">
+                            <Table className="text-[10px] border-collapse">
+                                <TableHeader className="bg-[#d4d0c8] sticky top-0 z-10">
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-gray-400">
+                                            {headerGroup.headers.map((header) => (
+                                                <TableHead key={header.id} className="h-6 whitespace-nowrap font-bold text-black uppercase text-[9px] border-r border-gray-400 last:border-r-0 px-2">
+                                                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                                </TableHead>
+                                            ))}
+                                        </TableRow>
                                     ))}
-                                </TableRow>
-                            ))}
-                        </TableHeader>
-                        <TableBody>
-                            {table.getRowModel().rows?.length ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="h-10">
-                                        {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id} className="py-1 whitespace-nowrap border-r last:border-r-0">
-                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={insuranceBillingColumns.length} className="h-24 text-center">No results.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {table.getRowModel().rows?.length ? (
+                                        table.getRowModel().rows.map((row, idx) => (
+                                            <TableRow 
+                                                key={row.id} 
+                                                data-state={row.getIsSelected() && "selected"} 
+                                                className={idx % 2 === 1 ? "bg-[#eef6ff] h-7 border-b" : "h-7 border-b"}
+                                            >
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell key={cell.id} className="py-0.5 px-2 whitespace-nowrap border-r border-gray-200 last:border-r-0">
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={insuranceBillingColumns.length} className="h-24 text-center">No results retrieved.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
 
-                {/* Right Action Sidebar */}
-                <div className="w-48 bg-muted/20 flex flex-col p-2 space-y-4 border-l">
-                    <div className="space-y-1">
-                        <Button variant="outline" className="w-full justify-start text-[10px] h-8 px-2 font-bold uppercase" size="sm">
-                            <Zap className="mr-2 h-3 w-3 text-accent" /> Pre-Claim
-                        </Button>
-                    </div>
+                        {/* Right Professional Sidebar */}
+                        <div className="w-24 bg-[#f0f0f0] flex flex-col p-1 space-y-2 border-l border-gray-400 overflow-y-auto">
+                            <div className="space-y-1">
+                                <Button variant="outline" className="w-full h-12 flex flex-col items-center justify-center p-1 bg-white border-gray-400 shadow-sm" size="sm">
+                                    <Zap className="h-5 w-5 text-success" />
+                                    <span className="text-[8px] font-bold uppercase mt-0.5">Pre-Claim</span>
+                                </Button>
+                            </div>
 
-                    <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase px-1">EMC:</p>
-                        <Separator className="mb-1" />
-                        <Button variant="outline" className="w-full justify-start text-[10px] h-8 px-2" size="sm">
-                            <Settings2 className="mr-2 h-3 w-3" /> Generate
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start text-[10px] h-8 px-2" size="sm">
-                            <Send className="mr-2 h-3 w-3" /> Send / Rece.
-                        </Button>
-                    </div>
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-bold text-blue-800 uppercase text-center border-b border-gray-300">EMC:</p>
+                                <div className="grid grid-cols-1 gap-1">
+                                    <Button variant="ghost" className="w-full h-12 flex flex-col items-center justify-center p-1" size="sm">
+                                        <Settings2 className="h-5 w-5 text-gray-500" />
+                                        <span className="text-[8px] font-bold">Generate</span>
+                                    </Button>
+                                    <Button variant="ghost" className="w-full h-12 flex flex-col items-center justify-center p-1" size="sm">
+                                        <Send className="h-5 w-5 text-green-600" />
+                                        <span className="text-[8px] font-bold leading-tight">Send / Rece.</span>
+                                    </Button>
+                                </div>
+                            </div>
 
-                    <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase px-1">Paper Forms:</p>
-                        <Separator className="mb-1" />
-                        <div className="grid grid-cols-2 gap-1">
-                            <Button variant="outline" className="text-[9px] h-8 p-1" size="sm"><Printer className="mr-1 h-3 w-3" /> 1500</Button>
-                            <Button variant="outline" className="text-[9px] h-8 p-1" size="sm"><Printer className="mr-1 h-3 w-3" /> UB04</Button>
-                            <Button variant="outline" className="text-[9px] h-8 p-1" size="sm"><Printer className="mr-1 h-3 w-3" /> ADA</Button>
-                            <Button variant="outline" className="text-[9px] h-8 p-1" size="sm"><Printer className="mr-1 h-3 w-3" /> WC</Button>
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-bold text-blue-800 uppercase text-center border-b border-gray-300">Paper:</p>
+                                <div className="grid grid-cols-2 gap-1">
+                                    <Button variant="ghost" className="h-10 flex flex-col items-center justify-center p-0.5" size="sm">
+                                        <Printer className="h-4 w-4" />
+                                        <span className="text-[7px] font-bold">1500</span>
+                                    </Button>
+                                    <Button variant="ghost" className="h-10 flex flex-col items-center justify-center p-0.5" size="sm">
+                                        <LayoutGrid className="h-4 w-4" />
+                                        <span className="text-[7px] font-bold">CHDP</span>
+                                    </Button>
+                                    <Button variant="ghost" className="h-10 flex flex-col items-center justify-center p-0.5" size="sm">
+                                        <FileCheck className="h-4 w-4" />
+                                        <span className="text-[7px] font-bold">WC</span>
+                                    </Button>
+                                    <Button variant="ghost" className="h-10 flex flex-col items-center justify-center p-0.5" size="sm">
+                                        <Database className="h-4 w-4" />
+                                        <span className="text-[7px] font-bold">UB04</span>
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1 pt-1 border-t border-gray-300">
+                                <Button variant="ghost" className="w-full h-10 flex flex-col items-center justify-center p-1" size="sm">
+                                    <FileText className="h-4 w-4 text-blue-600" />
+                                    <span className="text-[8px] font-bold">Show Claim</span>
+                                </Button>
+                                <Button variant="ghost" className="w-full h-10 flex flex-col items-center justify-center p-1" size="sm">
+                                    <RefreshCw className="h-4 w-4 text-green-600" />
+                                    <span className="text-[8px] font-bold">Rebill</span>
+                                </Button>
+                                <Button variant="ghost" className="w-full h-10 flex flex-col items-center justify-center p-1" size="sm">
+                                    <History className="h-4 w-4 text-primary" />
+                                    <span className="text-[8px] font-bold">History</span>
+                                </Button>
+                            </div>
+
+                            <div className="mt-auto space-y-1">
+                                <Button variant="ghost" className="w-full h-10 flex flex-col items-center justify-center p-1" size="sm">
+                                    <PauseCircle className="h-4 w-4 text-red-600" />
+                                    <span className="text-[8px] font-bold uppercase">Hold</span>
+                                </Button>
+                                <div className="grid grid-cols-2 gap-1">
+                                    <Button variant="ghost" className="h-8 flex flex-col items-center p-0.5" size="sm" onClick={() => table.toggleAllPageRowsSelected(true)}>
+                                        <CheckSquare className="h-3 w-3" />
+                                        <span className="text-[7px] font-bold">All</span>
+                                    </Button>
+                                    <Button variant="ghost" className="h-8 flex flex-col items-center p-0.5" size="sm" onClick={() => table.toggleAllPageRowsSelected(false)}>
+                                        <Square className="h-3 w-3" />
+                                        <span className="text-[7px] font-bold">None</span>
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase px-1">Workflow:</p>
-                        <Separator className="mb-1" />
-                        <Button variant="outline" className="w-full justify-start text-[10px] h-8 px-2" size="sm">
-                            <History className="mr-2 h-3 w-3" /> History
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start text-[10px] h-8 px-2" size="sm">
-                            <RefreshCw className="mr-2 h-3 w-3" /> Rebill
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start text-[10px] h-8 px-2" size="sm">
-                            <PauseCircle className="mr-2 h-3 w-3" /> Hold Batch
-                        </Button>
-                    </div>
-
-                    <div className="mt-auto space-y-1">
-                        <Button variant="secondary" className="w-full text-[9px] h-7 uppercase" size="sm" onClick={() => table.toggleAllPageRowsSelected(true)}>
-                            <CheckSquare className="mr-1 h-3 w-3" /> Select All
-                        </Button>
-                        <Button variant="ghost" className="w-full text-[9px] h-7 uppercase" size="sm" onClick={() => table.toggleAllPageRowsSelected(false)}>
-                            <Square className="mr-1 h-3 w-3" /> Deselect
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Status Bar */}
-            <div className="bg-primary/90 text-primary-foreground p-1 px-4 flex items-center justify-between text-[10px] font-bold shadow-2xl">
-                <div className="flex gap-4">
-                    <span className="flex items-center gap-1"><FileWarning className="h-3 w-3" /> Ovd = Overdue</span>
-                    <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> Scrubbing On</span>
-                </div>
-                <div className="flex gap-6 items-center">
-                    <span className="uppercase opacity-80">Practice: {selectedPractice?.name}</span>
-                    <div className="flex gap-4 bg-black/20 px-3 py-0.5 rounded">
-                        <span>TOTAL RECORDS: {table.getCoreRowModel().rows.length}</span>
-                        <span>TOTAL AMOUNT: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalAllAmount)}</span>
-                    </div>
-                    {selectedRows.length > 0 && (
-                        <div className="flex gap-4 bg-accent text-accent-foreground px-3 py-0.5 rounded animate-pulse">
-                            <span>SELECTED: {selectedRows.length}</span>
-                            <span>SELECTED AMT: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalSelectedAmount)}</span>
+                    {/* Bottom Professional Status Bar */}
+                    <div className="bg-[#1e3a5f] text-white p-1 px-4 flex items-center justify-between text-[10px] font-normal shadow-inner">
+                        <div className="flex gap-4">
+                            <span className="flex items-center gap-1"><ShieldAlert className="h-3 w-3 text-[#f9c152]" /> Overdue Claim Filing Days.</span>
+                            <span className="flex items-center gap-1"><Briefcase className="h-3 w-3 text-[#f9c152]" /> = Worker's Compensation.</span>
+                            <span className="flex items-center gap-1"><RefreshCw className="h-3 w-3 text-[#a6caf0]" /> = Scrubbing On</span>
+                            <span className="bg-[#0a246a] px-2 rounded-sm border border-gray-500">Transaction on Hold (4)</span>
                         </div>
-                    )}
+                        <div className="flex gap-8 items-center">
+                            <div className="flex gap-6">
+                                <span className="flex items-center gap-2">Total: <span className="font-bold">{table.getCoreRowModel().rows.length}</span></span>
+                                <span className="font-bold">{new Intl.NumberFormat("en-US", { minimumFractionDigits: 2 }).format(totalAllAmount)}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
