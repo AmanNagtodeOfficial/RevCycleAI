@@ -18,7 +18,7 @@ Follow these steps in your local terminal to push this project to a new private 
    - Go to [github.com/new](https://github.com/new).
    - Name your repository (e.g., `revcycle-ai`).
    - Select **Private**.
-   - Do **not** initialize with a README, license, or .gitignore (we already have them).
+   - Do **not** initialize with a README, license, or .gitignore (we have already added them for you).
 
 2. **Initialize Git and push**:
    Open your terminal in the project root and run:
@@ -36,7 +36,8 @@ git commit -m "Initial commit: RevCycle AI RCM Platform"
 # Branch to main
 git branch -M main
 
-# Add your GitHub repository as remote (Replace <USERNAME> and <REPO>)
+# Add your GitHub repository as remote (Replace <USERNAME> and <REPO> with your actual GitHub details)
+# Example: git remote add origin https://github.com/yourname/revcycle-ai.git
 git remote add origin https://github.com/<USERNAME>/<REPO>.git
 
 # Push to GitHub
